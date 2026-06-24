@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>NeuoTunnel — Cannabis Kiosk</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>NeuoTunnel</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{
@@ -11,378 +11,403 @@ html,body{
   background:#000812;color:#c0d0e0;
   font-family:'Segoe UI',system-ui,sans-serif;
   -webkit-font-smoothing:antialiased;
+  touch-action:none;
 }
-#root{position:relative;width:100vw;height:100vh;overflow:hidden}
 
-/* ── FULL-SCREEN CANVAS ── */
-#c{position:absolute;inset:0;display:block}
+/* ── ROOT fills the whole viewport ── */
+#root{
+  position:fixed;inset:0;
+  /* safe area on iPhone notch/home bar */
+  padding-top:env(safe-area-inset-top);
+  padding-bottom:env(safe-area-inset-bottom);
+}
 
-/* ── FLOATING TOP BAR ── */
+/* ── CANVAS fills root ── */
+#c{position:absolute;inset:0;display:block;width:100%;height:100%}
+
+/* ── TOP BAR ── */
 #top{
-  position:absolute;top:0;left:0;right:0;height:50px;z-index:30;
-  display:flex;align-items:center;gap:10px;padding:0 14px;
-  background:rgba(0,5,18,.84);backdrop-filter:blur(16px);
+  position:absolute;top:0;left:0;right:0;
+  height:48px;z-index:20;
+  display:flex;align-items:center;gap:8px;padding:0 12px;
+  background:rgba(0,5,18,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   border-bottom:1px solid rgba(0,180,255,.18);
 }
-.logo{display:flex;align-items:center;gap:7px;flex-shrink:0;text-decoration:none}
-.logo-t{font-size:13px;font-weight:800;letter-spacing:3px;color:#00e5ff}
-.logo-s{font-size:8px;letter-spacing:3px;color:#5fff80}
-.vsep{width:1px;height:22px;background:rgba(0,180,255,.2);flex-shrink:0}
-#cats{display:flex;gap:4px;overflow-x:auto;flex:1;scrollbar-width:none}
+.logo-t{font-size:12px;font-weight:800;letter-spacing:3px;color:#00e5ff;white-space:nowrap}
+.logo-s{font-size:7px;letter-spacing:3px;color:#5fff80;white-space:nowrap}
+.vsep{width:1px;height:20px;background:rgba(0,180,255,.2);flex-shrink:0}
+#cats{display:flex;gap:3px;overflow-x:auto;flex:1;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 #cats::-webkit-scrollbar{display:none}
 .cat{
-  flex-shrink:0;padding:4px 13px;border-radius:16px;border:1px solid rgba(255,255,255,.1);
-  background:transparent;color:#4a6070;font-size:11px;font-weight:600;cursor:pointer;
-  white-space:nowrap;transition:.18s;display:flex;align-items:center;gap:4px;
+  flex-shrink:0;padding:3px 11px;border-radius:14px;
+  border:1px solid rgba(255,255,255,.1);background:transparent;
+  color:#4a6070;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap;transition:.16s;
 }
 .cat:hover{color:#fff;border-color:rgba(255,255,255,.3)}
-.cat.on{color:#00e5ff;border-color:#00e5ff;background:rgba(0,229,255,.12);box-shadow:0 0 12px rgba(0,229,255,.18)}
-.ico-btn{
-  flex-shrink:0;width:34px;height:34px;border-radius:7px;
-  background:rgba(255,255,255,.05);border:1px solid rgba(0,180,255,.2);
-  color:#4a6070;font-size:14px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:.18s;
+.cat.on{color:#00e5ff;border-color:#00e5ff;background:rgba(0,229,255,.12);box-shadow:0 0 10px rgba(0,229,255,.16)}
+.ico{
+  flex-shrink:0;width:32px;height:32px;border-radius:7px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(0,180,255,.18);
+  color:#4a6070;font-size:13px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:.16s;
 }
-.ico-btn:hover,.ico-btn.on{color:#00e5ff;border-color:#00e5ff;background:rgba(0,229,255,.1)}
+.ico:hover,.ico.on{color:#00e5ff;border-color:#00e5ff;background:rgba(0,229,255,.1)}
 
-/* ── FLOATING BOTTOM BAR ── */
-#bot{
-  position:absolute;bottom:0;left:0;right:0;height:58px;z-index:30;
-  display:flex;align-items:center;justify-content:center;gap:14px;padding:0 20px;
-  background:rgba(0,5,18,.84);backdrop-filter:blur(16px);
-  border-top:1px solid rgba(0,180,255,.18);
+/* ── FLOATING SIDE ARROWS ── */
+.arrow{
+  position:absolute;top:50%;transform:translateY(-50%);
+  width:36px;height:60px;z-index:15;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,5,18,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid rgba(0,180,255,.18);
+  color:rgba(0,229,255,.6);font-size:16px;cursor:pointer;
+  transition:.16s;user-select:none;
 }
-.cbtn{
-  width:34px;height:34px;border-radius:50%;border:1.5px solid rgba(0,229,255,.32);
-  background:rgba(0,229,255,.07);color:#00e5ff;font-size:13px;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.18s;
-}
-.cbtn:hover{background:rgba(0,229,255,.22);box-shadow:0 0 14px rgba(0,229,255,.3)}
-.cbtn.big{width:44px;height:44px;font-size:17px}
-.price-wrap{display:flex;align-items:center;gap:8px;flex:1;max-width:260px}
-.plbl{font-size:10px;color:#4a6070;flex-shrink:0}
-#pslider{flex:1;accent-color:#00e5ff;cursor:pointer}
-.pnow{font-size:12px;font-weight:700;color:#ffd060;flex-shrink:0;min-width:44px;text-align:right}
-.here{
-  font-size:10px;color:#ffd060;flex-shrink:0;white-space:nowrap;
-  padding:3px 10px;border:1px solid rgba(255,208,96,.3);border-radius:10px;
-  background:rgba(255,208,96,.07);
-}
+#arL{left:0;border-radius:0 10px 10px 0;border-left:none}
+#arR{right:0;border-radius:10px 0 0 10px;border-right:none}
+.arrow:hover{background:rgba(0,229,255,.14);color:#00e5ff}
+.arrow:active{background:rgba(0,229,255,.25)}
 
-/* ── FILTER DRAWER (slide from left) ── */
+/* ── FILTER DRAWER (slides from left) ── */
 #drawer{
-  position:absolute;top:50px;left:0;bottom:58px;width:192px;z-index:40;
-  background:rgba(0,6,20,.96);backdrop-filter:blur(20px);
+  position:absolute;top:48px;left:0;bottom:0;width:188px;z-index:30;
+  background:rgba(0,5,18,.96);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
   border-right:1px solid rgba(0,180,255,.18);
-  padding:14px 11px;overflow-y:auto;
-  transform:translateX(-100%);transition:transform .28s cubic-bezier(.22,.68,0,1.1);
+  padding:13px 11px;overflow-y:auto;
+  transform:translateX(-100%);transition:transform .26s cubic-bezier(.22,.68,0,1.1);
   scrollbar-width:thin;scrollbar-color:rgba(0,229,255,.18) transparent;
 }
 #drawer.open{transform:translateX(0)}
-.dh{font-size:8px;letter-spacing:2.5px;text-transform:uppercase;color:#00e5ff;opacity:.6;margin:14px 0 6px}
+.dh{font-size:8px;letter-spacing:2.5px;text-transform:uppercase;color:#00e5ff;opacity:.55;margin:13px 0 6px}
 .dh:first-child{margin-top:0}
 .drow{
-  display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:6px;
-  font-size:12px;color:#c0d0e0;cursor:pointer;transition:.13s;
+  display:flex;align-items:center;gap:6px;padding:5px 7px;border-radius:6px;
+  font-size:12px;color:#c0d0e0;cursor:pointer;transition:.12s;user-select:none;
 }
 .drow:hover{background:rgba(0,229,255,.07);color:#fff}
 .drow.on{background:rgba(0,229,255,.12);color:#00e5ff}
 .ddot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.chk{margin-left:auto;font-size:9px;color:#00e5ff;opacity:0;transition:.13s}
+.chk{margin-left:auto;font-size:9px;color:#00e5ff;opacity:0;transition:.12s}
 .drow.on .chk{opacity:1}
-.ds{background:var(--c,#5fff80);box-shadow:0 0 5px var(--c,#5fff80)}
 .dslider{width:100%;accent-color:#00e5ff;cursor:pointer;margin:5px 0 2px}
 .dval{font-size:10px;color:#4a6070}
 #mmap{
-  width:100%;height:68px;margin-top:8px;
-  border:1px solid rgba(0,229,255,.18);border-radius:7px;
+  width:100%;height:64px;margin-top:8px;
+  border:1px solid rgba(0,229,255,.18);border-radius:6px;
   background:rgba(0,12,35,.7);position:relative;overflow:hidden;
 }
 .mmn{position:absolute;border-radius:50%}
-.mmc{
-  position:absolute;width:1.5px;height:100%;top:0;
-  background:rgba(255,255,255,.6);box-shadow:0 0 6px rgba(255,255,255,.4);
-  transition:left .25s;
-}
+.mmc{position:absolute;width:1.5px;height:100%;top:0;background:rgba(255,255,255,.5);box-shadow:0 0 6px rgba(255,255,255,.4);transition:left .2s}
 .krow{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#4a6070;padding:2px 0}
-.k{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:3px;padding:1px 5px;font-size:9px;color:#888}
+.k{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:3px;padding:1px 5px;font-size:9px;color:#888}
 
-/* ── DETAIL PANEL (slide from right) ── */
-#panel{
-  position:absolute;top:50px;right:0;bottom:58px;width:256px;z-index:40;
-  background:rgba(0,6,20,.96);backdrop-filter:blur(20px);
-  border-left:1px solid rgba(0,180,255,.18);
+/* ── DETAIL BOTTOM SHEET ── */
+#sheet{
+  position:absolute;left:0;right:0;bottom:0;z-index:40;
+  max-height:70vh;
+  background:rgba(0,6,22,.97);
+  border-top:1px solid rgba(0,180,255,.25);
+  border-radius:18px 18px 0 0;
   display:flex;flex-direction:column;
-  transform:translateX(100%);transition:transform .3s cubic-bezier(.22,.68,0,1.1);
+  transform:translateY(100%);
+  transition:transform .32s cubic-bezier(.22,.68,0,1.1);
 }
-#panel.open{transform:translateX(0)}
-#ph{
-  flex-shrink:0;padding:11px 13px 9px;
-  border-bottom:1px solid rgba(0,180,255,.18);
-  display:flex;align-items:center;justify-content:space-between;
+#sheet.open{transform:translateY(0)}
+/* drag handle */
+#sheet-handle{
+  flex-shrink:0;padding:10px;display:flex;align-items:center;justify-content:center;cursor:grab;
 }
-#ph span{font-size:8px;letter-spacing:2.5px;text-transform:uppercase;color:#00e5ff;opacity:.65}
-.pcls{
-  width:24px;height:24px;border-radius:5px;border:1px solid rgba(0,180,255,.2);
-  background:transparent;color:#4a6070;font-size:12px;cursor:pointer;
+#sheet-handle div{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.18)}
+/* hex accent header */
+#sheet-hex{
+  flex-shrink:0;padding:0 16px 12px;
+  display:flex;align-items:center;gap:12px;
+}
+.sh-hex{flex-shrink:0}
+.sh-info{flex:1;min-width:0}
+.sh-name{font-size:17px;font-weight:800;color:#fff;line-height:1.2;margin-bottom:2px}
+.sh-sub{font-size:11px;color:#4a6070}
+.sh-price{font-size:26px;font-weight:800;color:#fff;flex-shrink:0}
+/* scrollable body */
+#sheet-scroll{
+  flex:1;overflow-y:auto;padding:0 16px 20px;
+  scrollbar-width:thin;scrollbar-color:rgba(0,229,255,.18) transparent;
+}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+.sc{background:rgba(0,12,30,.8);border:1px solid rgba(0,180,255,.14);border-radius:8px;padding:8px 10px}
+.scl{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:#4a6070;margin-bottom:2px}
+.scv{font-size:13px;font-weight:700;color:#fff}
+.sdesc{font-size:11px;color:#c0d0e0;line-height:1.65;margin-bottom:12px}
+.ssh{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#00e5ff;opacity:.6;margin-bottom:5px}
+.tlist{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px}
+.tc{font-size:10px;padding:3px 8px;border-radius:8px;background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.2);color:#00e5ff}
+.phylo{background:rgba(0,8,22,.8);border:1px solid rgba(0,180,255,.14);border-radius:8px;padding:10px;margin-bottom:14px;font-size:11px;line-height:2;color:#c0d0e0}
+.pfin{font-weight:700}
+.sadd{
+  width:100%;padding:13px;border-radius:10px;
+  font-size:14px;font-weight:800;border:none;cursor:pointer;
+  background:linear-gradient(135deg,#00e5ff,#0070ff);color:#000;
+  transition:.16s;margin-bottom:8px;
+}
+.sadd:hover{opacity:.88;box-shadow:0 0 22px rgba(0,229,255,.35)}
+.sfav{
+  width:100%;padding:11px;border-radius:10px;
+  font-size:12px;font-weight:600;cursor:pointer;
+  background:transparent;border:1px solid rgba(0,180,255,.2);color:#4a6070;transition:.16s;
+}
+.sfav:hover{border-color:#fff;color:#fff}
+/* close button */
+#sheet-close{
+  position:absolute;top:10px;right:12px;
+  width:28px;height:28px;border-radius:50%;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);
+  color:#aaa;font-size:13px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;transition:.14s;
 }
-.pcls:hover{color:#fff;border-color:#fff}
-#pscroll{flex:1;overflow-y:auto;padding:13px;scrollbar-width:thin;scrollbar-color:rgba(0,229,255,.18) transparent}
-.dbar{height:2px;border-radius:1px;margin-bottom:12px}
-.dname{font-size:15px;font-weight:800;color:#fff;line-height:1.25;margin-bottom:3px}
-.dsub{font-size:11px;color:#4a6070;margin-bottom:9px}
-.dprice{font-size:28px;font-weight:800;color:#fff}
-.dthc{font-size:11px;color:#4a6070;margin-bottom:11px}
-.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:11px}
-.dcell{background:rgba(0,12,30,.7);border:1px solid rgba(0,180,255,.15);border-radius:7px;padding:7px 9px}
-.dclbl{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:#4a6070;margin-bottom:2px}
-.dcval{font-size:13px;font-weight:700;color:#fff}
-.ddesc{font-size:11px;color:#c0d0e0;line-height:1.65;margin-bottom:11px}
-.dsh{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#00e5ff;opacity:.6;margin-bottom:5px}
-.tlist{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:11px}
-.tchip{font-size:10px;padding:3px 8px;border-radius:9px;background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.2);color:#00e5ff}
-.pbox{background:rgba(0,8,22,.7);border:1px solid rgba(0,180,255,.15);border-radius:7px;padding:9px;margin-bottom:11px;font-size:11px;line-height:2;color:#c0d0e0}
-.pfinal{font-weight:700}
-.dbtn{
-  width:100%;padding:10px;border-radius:8px;cursor:pointer;
-  font-size:13px;font-weight:700;border:none;margin-bottom:6px;transition:.18s;
-}
-.dbtn.p{background:linear-gradient(135deg,#00e5ff,#0070ff);color:#000}
-.dbtn.p:hover{opacity:.85;box-shadow:0 0 20px rgba(0,229,255,.35)}
-.dbtn.g{background:transparent;border:1px solid rgba(0,180,255,.2);color:#4a6070}
-.dbtn.g:hover{border-color:#fff;color:#fff}
+#sheet-close:hover{background:rgba(255,255,255,.15);color:#fff}
 
-/* ── PAUSE OVERLAY ── */
-#po{
-  position:absolute;inset:0;z-index:50;
-  background:rgba(0,5,15,.65);backdrop-filter:blur(3px);
-  display:none;align-items:center;justify-content:center;
-  font-size:13px;letter-spacing:4px;color:#4a6070;pointer-events:none;
+/* ── DIM OVERLAY behind sheet ── */
+#dim{
+  position:absolute;inset:0;z-index:35;
+  background:rgba(0,5,15,.6);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
+  opacity:0;pointer-events:none;transition:opacity .28s;
 }
-#po.show{display:flex}
+#dim.show{opacity:1;pointer-events:auto}
+
+/* ── PAUSE BADGE ── */
+#po{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  z-index:18;pointer-events:none;
+  font-size:11px;letter-spacing:4px;color:#4a6070;
+  padding:8px 18px;background:rgba(0,5,15,.7);border-radius:20px;
+  border:1px solid rgba(0,180,255,.15);
+  display:none;
+}
+#po.show{display:block}
+
 ::-webkit-scrollbar{width:3px}
 ::-webkit-scrollbar-thumb{background:rgba(0,229,255,.2);border-radius:2px}
 </style>
 </head>
 <body>
 <div id="root">
-  <!-- full-screen canvas: background rings + product cards drawn here -->
-  <canvas id="c"></canvas>
 
-  <!-- TOP -->
-  <div id="top">
-    <div class="logo">
-      <svg width="20" height="20" viewBox="0 0 20 20">
-        <polygon points="10,1 18,5.5 18,14.5 10,19 2,14.5 2,5.5" fill="none" stroke="#00e5ff" stroke-width="1.4" opacity=".8"/>
-        <circle cx="10" cy="10" r="2.8" fill="#5fff80"/>
-      </svg>
-      <div><div class="logo-t">NEUOTUNNEL</div><div class="logo-s">DISPENSARY KIOSK</div></div>
-    </div>
-    <div class="vsep"></div>
-    <div id="cats">
-      <button class="cat" data-c="flower"        onclick="setCat(this)">🌿 Flower</button>
-      <button class="cat" data-c="vapes"         onclick="setCat(this)">💨 Vapes</button>
-      <button class="cat" data-c="concentrates"  onclick="setCat(this)">💎 Concentrates</button>
-      <button class="cat on" data-c="edibles"    onclick="setCat(this)">🍬 Edibles</button>
-      <button class="cat" data-c="tinctures"     onclick="setCat(this)">🧪 Tinctures</button>
-      <button class="cat" data-c="topicals"      onclick="setCat(this)">🫧 Topicals</button>
-    </div>
-    <div class="vsep"></div>
-    <button class="ico-btn" id="ftoggle" onclick="toggleDrawer()" title="Filters (F)">☰</button>
-    <button class="ico-btn" id="ptoggle" onclick="togglePanel()" title="Details" style="display:none">◧</button>
+<canvas id="c"></canvas>
+
+<!-- TOP BAR -->
+<div id="top">
+  <div>
+    <div class="logo-t">NEUOTUNNEL</div>
+    <div class="logo-s">DISPENSARY KIOSK</div>
   </div>
-
-  <!-- FILTER DRAWER -->
-  <div id="drawer">
-    <div class="dh">Strain</div>
-    <div class="drow on" data-s="all"    onclick="setStrain(this)"><div class="ddot" style="--c:#aaa;background:conic-gradient(#5fff80,#00e5ff,#b06fff)"></div>All<div class="chk">✓</div></div>
-    <div class="drow"    data-s="sativa"  onclick="setStrain(this)"><div class="ddot ds" style="--c:#5fff80"></div>Sativa<div class="chk">✓</div></div>
-    <div class="drow"    data-s="hybrid"  onclick="setStrain(this)"><div class="ddot ds" style="--c:#00e5ff"></div>Hybrid<div class="chk">✓</div></div>
-    <div class="drow"    data-s="indica"  onclick="setStrain(this)"><div class="ddot ds" style="--c:#b06fff"></div>Indica<div class="chk">✓</div></div>
-    <div class="dh">Sort</div>
-    <div class="drow on" data-o="price_asc"  onclick="setSort(this)">↑ Price</div>
-    <div class="drow"    data-o="price_desc" onclick="setSort(this)">↓ Price</div>
-    <div class="drow"    data-o="thc_desc"   onclick="setSort(this)">⚡ THC</div>
-    <div class="drow"    data-o="terpene"    onclick="setSort(this)">🌿 Terpene</div>
-    <div class="drow"    data-o="name"       onclick="setSort(this)">A→Z</div>
-    <div class="dh">Max THC</div>
-    <input class="dslider" type="range" id="tslider" min="1" max="100" value="100" oninput="setTHC(this)"/>
-    <div class="dval">Up to <span id="tval">100</span>mg</div>
-    <div class="dh">Tunnel Map</div>
-    <div id="mmap"><div class="mmc" id="mmc"></div></div>
-    <div style="font-size:8.5px;color:#4a6070;margin-top:5px;display:flex;gap:8px">
-      <span style="color:#5fff80">■</span>Sativa
-      <span style="color:#00e5ff">■</span>Hybrid
-      <span style="color:#b06fff">■</span>Indica
-    </div>
-    <div class="dh">Keys</div>
-    <div class="krow"><span>Navigate</span><span class="k">← →</span></div>
-    <div class="krow"><span>Pause</span><span class="k">Space</span></div>
-    <div class="krow"><span>Scrub</span><span class="k">Drag</span></div>
-    <div class="krow"><span>Filters</span><span class="k">F</span></div>
-    <div class="krow"><span>Close</span><span class="k">Esc</span></div>
+  <div class="vsep"></div>
+  <div id="cats">
+    <button class="cat" data-c="flower"       onclick="setCat(this)">🌿 Flower</button>
+    <button class="cat" data-c="vapes"        onclick="setCat(this)">💨 Vapes</button>
+    <button class="cat" data-c="concentrates" onclick="setCat(this)">💎 Concentrates</button>
+    <button class="cat on" data-c="edibles"   onclick="setCat(this)">🍬 Edibles</button>
+    <button class="cat" data-c="tinctures"    onclick="setCat(this)">🧪 Tinctures</button>
+    <button class="cat" data-c="topicals"     onclick="setCat(this)">🫧 Topicals</button>
   </div>
-
-  <!-- DETAIL PANEL -->
-  <div id="panel">
-    <div id="ph"><span>Product Details</span><button class="pcls" onclick="closePanel()">✕</button></div>
-    <div id="pscroll"><div id="pfill"></div></div>
-  </div>
-
-  <!-- BOTTOM -->
-  <div id="bot">
-    <button class="cbtn" onclick="jump(-4)"    title="Back">⏮</button>
-    <button class="cbtn" onclick="step(-1)"    title="Step back">◀</button>
-    <button class="cbtn big" id="playbtn" onclick="togglePause()">⏸</button>
-    <button class="cbtn" onclick="step(1)"     title="Step forward">▶</button>
-    <button class="cbtn" onclick="jump(4)"     title="Forward">⏭</button>
-    <div class="price-wrap">
-      <span class="plbl">$0</span>
-      <input type="range" id="pslider" min="0" max="100" value="0" oninput="seekTo(+this.value)"/>
-      <span class="plbl">$80+</span>
-    </div>
-    <div class="here">📍 $<span id="pnow">—</span></div>
-  </div>
-
-  <div id="po">⏸ &nbsp; PAUSED</div>
+  <button class="ico" id="ftoggle" onclick="toggleDrawer()" title="Filters">☰</button>
 </div>
 
+<!-- FLOATING SIDE NAVIGATION -->
+<button class="arrow" id="arL" onclick="step(-1)">‹</button>
+<button class="arrow" id="arR" onclick="step(1)">›</button>
+
+<!-- FILTER DRAWER -->
+<div id="drawer">
+  <div class="dh">Strain Family</div>
+  <div class="drow on" data-s="all"   onclick="setStrain(this)"><div class="ddot" style="background:conic-gradient(#5fff80,#00e5ff,#b06fff)"></div>All<div class="chk">✓</div></div>
+  <div class="drow"   data-s="sativa" onclick="setStrain(this)"><div class="ddot" style="background:#5fff80;box-shadow:0 0 5px #5fff80"></div>Sativa<div class="chk">✓</div></div>
+  <div class="drow"   data-s="hybrid" onclick="setStrain(this)"><div class="ddot" style="background:#00e5ff;box-shadow:0 0 5px #00e5ff"></div>Hybrid<div class="chk">✓</div></div>
+  <div class="drow"   data-s="indica" onclick="setStrain(this)"><div class="ddot" style="background:#b06fff;box-shadow:0 0 5px #b06fff"></div>Indica<div class="chk">✓</div></div>
+  <div class="dh">Sort By</div>
+  <div class="drow on" data-o="price_asc"  onclick="setSort(this)">↑ Price</div>
+  <div class="drow"    data-o="price_desc" onclick="setSort(this)">↓ Price</div>
+  <div class="drow"    data-o="thc_desc"   onclick="setSort(this)">⚡ THC</div>
+  <div class="drow"    data-o="terpene"    onclick="setSort(this)">🌿 Terpene</div>
+  <div class="drow"    data-o="name"       onclick="setSort(this)">A→Z</div>
+  <div class="dh">Max THC</div>
+  <input class="dslider" type="range" id="tslider" min="1" max="100" value="100" oninput="setTHC(this)"/>
+  <div class="dval">Up to <span id="tval">100</span>mg</div>
+  <div class="dh">Tunnel Map</div>
+  <div id="mmap"><div class="mmc" id="mmc"></div></div>
+  <div style="font-size:8.5px;color:#4a6070;margin-top:5px;display:flex;gap:8px">
+    <span style="color:#5fff80">■</span>Sativa
+    <span style="color:#00e5ff">■</span>Hybrid
+    <span style="color:#b06fff">■</span>Indica
+  </div>
+  <div class="dh">Navigate</div>
+  <div class="krow"><span>Drag / Swipe</span><span class="k">touch</span></div>
+  <div class="krow"><span>Step</span><span class="k">← →</span></div>
+  <div class="krow"><span>Scroll</span><span class="k">wheel</span></div>
+  <div class="krow"><span>Filters</span><span class="k">F</span></div>
+  <div class="krow"><span>Close</span><span class="k">Esc</span></div>
+</div>
+
+<!-- DIM OVERLAY -->
+<div id="dim" onclick="closeSheet()"></div>
+
+<!-- DETAIL BOTTOM SHEET -->
+<div id="sheet">
+  <button id="sheet-close" onclick="closeSheet()">✕</button>
+  <div id="sheet-handle"><div></div></div>
+  <div id="sheet-hex"></div>
+  <div id="sheet-scroll"></div>
+</div>
+
+<div id="po">⏸ PAUSED</div>
+
+</div><!-- /root -->
+
 <script>
-// ═══════════════════════════════════════════
-//  PRODUCT DATA
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════════
 const P=[
-  {id:1, name:'Sour Cherry Gummies',    s:'sativa',cat:'edibles', price:5,  thc:50,  cbd:5,   fx:'Energize',  terps:['Myrcene','Limonene'],              brand:'Kiva',       lin:['AK-47','Sour Diesel'],               desc:'Bright cherry-citrus gummies with a clean cerebral onset perfect for active afternoons.'},
-  {id:2, name:'Citrus Blast Gummies',   s:'sativa',cat:'edibles', price:13, thc:20,  cbd:0,   fx:'Uplift',    terps:['Limonene','Terpinolene'],           brand:'Wana',       lin:['Tangie','Jack Herer'],               desc:'Sun-drenched citrus burst over a functional sativa heritage. Great for creative work.'},
-  {id:3, name:'Sunny Day Chews',        s:'sativa',cat:'edibles', price:14, thc:25,  cbd:5,   fx:'Focus',     terps:['Limonene','Pinene'],                brand:'Kanha',      lin:['Lemon Haze','Durban Poison'],        desc:'Clean lemon-pine clarity from a legendary Durban lineage. Ideal for productivity.'},
-  {id:4, name:'Green Apple Gummies',    s:'sativa',cat:'edibles', price:12, thc:20,  cbd:0,   fx:'Energize',  terps:['Limonene','Citrus'],                brand:'Nebula',     lin:['Apple Fritter','Trainwreck'],        desc:'Tart green apple pop with a focused electric high. A morning fan-favourite.'},
-  {id:5, name:'Lemon Spark Dreams',     s:'sativa',cat:'edibles', price:15, thc:30,  cbd:0,   fx:'Create',    terps:['Terpinolene','Limonene'],           brand:'Wyld',       lin:['Lemon Skunk','Super Silver Haze'],   desc:'Dreamy lemon haze energy for artists and wanderers seeking inspiration.'},
-  {id:6, name:'Balanced Fruit Gums',   s:'hybrid', cat:'edibles', price:28, thc:100, cbd:100, fx:'Balance',   terps:['Myrcene','Caryophyllene'],          brand:'Kiva',       lin:['Blue Dream','Cannatonic'],           desc:'Perfect 1:1 THC:CBD ratio delivering calm clarity without sedation.'},
-  {id:7, name:'Peach Party Gummies',   s:'hybrid', cat:'edibles', price:14, thc:25,  cbd:5,   fx:'Social',    terps:['Myrcene','Ocimene'],                brand:'Wana',       lin:['Peach Ringz','Gelato 41'],           desc:'Juicy sun-ripened peach sweetness with a warm sociable body ease.'},
-  {id:8, name:'Blackberry Dreams',     s:'hybrid', cat:'edibles', price:15, thc:25,  cbd:5,   fx:'Relax',     terps:['Caryophyllene','Linalool'],         brand:'Kanha',      lin:['Blackberry Kush','Blue Dream'],      desc:'Rich berry sweetness transitioning to gentle body relaxation.'},
-  {id:9, name:'Calm & Chill Drops',    s:'hybrid', cat:'edibles', price:22, thc:50,  cbd:50,  fx:'Decompress',terps:['Linalool','Myrcene'],               brand:'Wyld',       lin:['Purple Punch','ACDC'],               desc:'Equal THC/CBD blend for winding down without full sedation.'},
-  {id:10,name:'Mango Sunrise Chews',   s:'hybrid', cat:'edibles', price:16, thc:30,  cbd:0,   fx:'Euphoria',  terps:['Myrcene','Ocimene','Limonene'],     brand:'Plus',       lin:['Mango Kush','Pineapple Express'],    desc:'Tropical mango burst with an uplifting euphoric wave.'},
-  {id:11,name:'Midnight Berry Gummies',s:'indica', cat:'edibles', price:32, thc:100, cbd:10,  fx:'Sleep',     terps:['Myrcene','Linalool'],               brand:'Kiva',       lin:['Granddaddy Purple','Blueberry'],     desc:'Deep purple-berry sedation for full-body sleep support.'},
-  {id:12,name:'Velvet Sleep Gummies',  s:'indica', cat:'edibles', price:14, thc:20,  cbd:0,   fx:'Sleep',     terps:['Myrcene','Caryophyllene'],          brand:'CloudRoot',  lin:['Zkittlez','Kosher Kush'],            desc:'Velvety smooth sedation from live-rosin infused gummies.'},
-  {id:13,name:'Sleepy Time Bites',     s:'indica', cat:'edibles', price:11, thc:20,  cbd:0,   fx:'Sleep',     terps:['Linalool','Terpineol'],             brand:'Wyld',       lin:['Northern Lights','Lavender'],        desc:'Classic indica nightcap with soothing floral lavender notes.'},
-  {id:14,name:'Clementine Relief',     s:'indica', cat:'edibles', price:75, thc:300, cbd:5,   fx:'Relief',    terps:['Caryophyllene','Humulene'],         brand:'Select',     lin:['Clementine','Hindu Kush'],           desc:'High-potency relief drops for chronic discomfort.'},
-  {id:15,name:'Midnight Mango Gummies',s:'indica', cat:'edibles', price:14, thc:25,  cbd:0,   fx:'Relax',     terps:['Myrcene','Caryophyllene'],          brand:'Wana',       lin:['Mango Kush','Granddaddy Purple'],    desc:'Exotic mango warmth settling into full-body ease.'},
-  {id:16,name:'Girl Scout Cookies',    s:'hybrid', cat:'flower',  price:45, thc:280, cbd:1,   fx:'Euphoria',  terps:['Caryophyllene','Limonene'],         brand:'Cookies',    lin:['OG Kush','Durban Poison'],           desc:'Iconic sweet earthy hybrid delivering full-body euphoria.'},
-  {id:17,name:'Blue Dream',            s:'hybrid', cat:'flower',  price:38, thc:210, cbd:2,   fx:'Balance',   terps:['Myrcene','Pinene'],                 brand:'Haze',       lin:['Blueberry','Haze'],                  desc:'Pacific coast staple delivering gentle cerebral invigoration.'},
-  {id:18,name:'Gelato 41',             s:'hybrid', cat:'flower',  price:52, thc:250, cbd:1,   fx:'Create',    terps:['Limonene','Caryophyllene'],         brand:'Sherbinski', lin:['Sunset Sherbet','GSC'],              desc:'Dessert-like aroma meets potent long-lasting cerebral rush.'},
-  {id:19,name:'Jack Herer',            s:'sativa', cat:'flower',  price:42, thc:220, cbd:0,   fx:'Focus',     terps:['Terpinolene','Pinene'],             brand:'Sensi',      lin:['Haze','Northern Lights #5'],         desc:'The legend of sativas — piney spicy uplift for creative minds.'},
-  {id:20,name:'OG Kush',               s:'indica', cat:'flower',  price:48, thc:260, cbd:1,   fx:'Relax',     terps:['Myrcene','Limonene'],               brand:'Top Shelf',  lin:['Chemdawg','Hindu Kush'],             desc:'West Coast classic — earthy pine with profound body relaxation.'},
-  {id:21,name:'Durban Poison Cart',    s:'sativa', cat:'vapes',   price:35, thc:800, cbd:5,   fx:'Energize',  terps:['Terpinolene','Ocimene'],            brand:'Bloom',      lin:['Durban Poison'],                     desc:'Pure South African sativa — licorice and anise with a clear electric buzz.'},
-  {id:22,name:'Wedding Cake Pod',      s:'hybrid', cat:'vapes',   price:42, thc:850, cbd:2,   fx:'Euphoria',  terps:['Caryophyllene','Limonene'],         brand:'Select',     lin:['Triangle Kush','Animal Mints'],      desc:'Rich vanilla and tangy pepper on the exhale. Full-body euphoria.'},
-  {id:23,name:'Northern Lights Cart',  s:'indica', cat:'vapes',   price:30, thc:820, cbd:1,   fx:'Sleep',     terps:['Myrcene','Linalool'],               brand:'Rove',       lin:['Afghani','Thai'],                    desc:'Musky sweet indica classic producing body melt and restful sleep.'},
-  {id:24,name:'Strawberry Cough Resin',s:'sativa', cat:'concentrates',price:55,thc:780,cbd:3, fx:'Uplift',    terps:['Myrcene','Limonene'],               brand:'Jetty',      lin:['Haze','Strawberry Fields'],          desc:'Vivid strawberry essence preserved through live resin extraction.'},
-  {id:25,name:'Pineapple OG Badder',   s:'hybrid', cat:'concentrates',price:60,thc:820,cbd:1, fx:'Euphoria',  terps:['Limonene','Myrcene'],               brand:'Raw Garden',  lin:['Pineapple','OG Kush'],               desc:'Tropical pineapple burst in a creamy workable badder consistency.'},
-  {id:26,name:'1:1 Rest Formula',      s:'hybrid', cat:'tinctures',price:40, thc:300, cbd:300,fx:'Sleep',     terps:['Linalool','Myrcene'],               brand:'Papa & Barkley',lin:['Broad-spectrum Hemp','OG Kush'], desc:'Sublingual drops for nighttime recovery with balanced cannabinoids.'},
-  {id:27,name:'Sativa Rise Drops',     s:'sativa', cat:'tinctures',price:36, thc:250, cbd:50, fx:'Energize',  terps:['Limonene','Pinene'],                brand:'Dosist',     lin:['ACDC','Jack Herer'],                 desc:'Morning formula to sharpen focus and elevate mood.'},
-  {id:28,name:'CBD Relief Balm',       s:'hybrid', cat:'topicals', price:28, thc:0,   cbd:500, fx:'Relief',   terps:['Caryophyllene','Menthol'],          brand:'Lord Jones',  lin:['Hemp CBD'],                          desc:'Cooling menthol balm with high-potency CBD for targeted localised relief.'},
+  {id:1, name:'Sour Cherry Gummies',    s:'sativa',cat:'edibles', price:5,  thc:50,  cbd:5,   fx:'Energize',  terps:['Myrcene','Limonene'],           brand:'Kiva',          lin:['AK-47','Sour Diesel'],            desc:'Bright cherry-citrus gummies with a clean cerebral onset. Perfect for active afternoons.'},
+  {id:2, name:'Citrus Blast Gummies',   s:'sativa',cat:'edibles', price:13, thc:20,  cbd:0,   fx:'Uplift',    terps:['Limonene','Terpinolene'],       brand:'Wana',          lin:['Tangie','Jack Herer'],            desc:'Sun-drenched citrus burst layered over a functional sativa heritage.'},
+  {id:3, name:'Sunny Day Chews',        s:'sativa',cat:'edibles', price:14, thc:25,  cbd:5,   fx:'Focus',     terps:['Limonene','Pinene'],            brand:'Kanha',         lin:['Lemon Haze','Durban Poison'],     desc:'Clean lemon-pine clarity from a legendary Durban lineage. Ideal for productivity.'},
+  {id:4, name:'Green Apple Gummies',    s:'sativa',cat:'edibles', price:12, thc:20,  cbd:0,   fx:'Energize',  terps:['Limonene','Citrus'],            brand:'Nebula',        lin:['Apple Fritter','Trainwreck'],     desc:'Tart green apple pop with a focused electric high.'},
+  {id:5, name:'Lemon Spark Dreams',     s:'sativa',cat:'edibles', price:15, thc:30,  cbd:0,   fx:'Create',    terps:['Terpinolene','Limonene'],       brand:'Wyld',          lin:['Lemon Skunk','Super Silver Haze'],desc:'Dreamy lemon haze energy for artists and wanderers.'},
+  {id:6, name:'Balanced Fruit Gums',   s:'hybrid', cat:'edibles', price:28, thc:100, cbd:100, fx:'Balance',   terps:['Myrcene','Caryophyllene'],      brand:'Kiva',          lin:['Blue Dream','Cannatonic'],        desc:'Perfect 1:1 THC:CBD ratio delivering calm clarity without sedation.'},
+  {id:7, name:'Peach Party Gummies',   s:'hybrid', cat:'edibles', price:14, thc:25,  cbd:5,   fx:'Social',    terps:['Myrcene','Ocimene'],            brand:'Wana',          lin:['Peach Ringz','Gelato 41'],        desc:'Juicy sun-ripened peach sweetness with a warm sociable body ease.'},
+  {id:8, name:'Blackberry Dreams',     s:'hybrid', cat:'edibles', price:15, thc:25,  cbd:5,   fx:'Relax',     terps:['Caryophyllene','Linalool'],     brand:'Kanha',         lin:['Blackberry Kush','Blue Dream'],   desc:'Rich berry sweetness transitioning to gentle body relaxation.'},
+  {id:9, name:'Calm & Chill Drops',    s:'hybrid', cat:'edibles', price:22, thc:50,  cbd:50,  fx:'Decompress',terps:['Linalool','Myrcene'],           brand:'Wyld',          lin:['Purple Punch','ACDC'],            desc:'Equal THC/CBD blend for winding down without full sedation.'},
+  {id:10,name:'Mango Sunrise Chews',   s:'hybrid', cat:'edibles', price:16, thc:30,  cbd:0,   fx:'Euphoria',  terps:['Myrcene','Ocimene'],            brand:'Plus',          lin:['Mango Kush','Pineapple Express'], desc:'Tropical mango burst with an uplifting euphoric wave.'},
+  {id:11,name:'Midnight Berry Gummies',s:'indica', cat:'edibles', price:32, thc:100, cbd:10,  fx:'Sleep',     terps:['Myrcene','Linalool'],           brand:'Kiva',          lin:['Granddaddy Purple','Blueberry'],  desc:'Deep purple-berry sedation for full-body sleep support.'},
+  {id:12,name:'Velvet Sleep Gummies',  s:'indica', cat:'edibles', price:14, thc:20,  cbd:0,   fx:'Sleep',     terps:['Myrcene','Caryophyllene'],      brand:'CloudRoot',     lin:['Zkittlez','Kosher Kush'],         desc:'Velvety smooth sedation from live-rosin infused gummies.'},
+  {id:13,name:'Sleepy Time Bites',     s:'indica', cat:'edibles', price:11, thc:20,  cbd:0,   fx:'Sleep',     terps:['Linalool','Terpineol'],         brand:'Wyld',          lin:['Northern Lights','Lavender'],     desc:'Classic indica nightcap with soothing floral lavender notes.'},
+  {id:14,name:'Clementine Relief',     s:'indica', cat:'edibles', price:75, thc:300, cbd:5,   fx:'Relief',    terps:['Caryophyllene','Humulene'],     brand:'Select',        lin:['Clementine','Hindu Kush'],        desc:'High-potency relief drops for chronic discomfort.'},
+  {id:15,name:'Midnight Mango Gummies',s:'indica', cat:'edibles', price:14, thc:25,  cbd:0,   fx:'Relax',     terps:['Myrcene','Caryophyllene'],      brand:'Wana',          lin:['Mango Kush','Granddaddy Purple'], desc:'Exotic mango warmth settling into full-body ease.'},
+  {id:16,name:'Girl Scout Cookies',    s:'hybrid', cat:'flower',  price:45, thc:280, cbd:1,   fx:'Euphoria',  terps:['Caryophyllene','Limonene'],     brand:'Cookies',       lin:['OG Kush','Durban Poison'],        desc:'Iconic sweet earthy hybrid delivering full-body euphoria.'},
+  {id:17,name:'Blue Dream',            s:'hybrid', cat:'flower',  price:38, thc:210, cbd:2,   fx:'Balance',   terps:['Myrcene','Pinene'],             brand:'Haze',          lin:['Blueberry','Haze'],               desc:'Pacific coast staple delivering gentle cerebral invigoration.'},
+  {id:18,name:'Gelato 41',             s:'hybrid', cat:'flower',  price:52, thc:250, cbd:1,   fx:'Create',    terps:['Limonene','Caryophyllene'],     brand:'Sherbinski',    lin:['Sunset Sherbet','GSC'],           desc:'Dessert-like aroma meets potent long-lasting cerebral rush.'},
+  {id:19,name:'Jack Herer',            s:'sativa', cat:'flower',  price:42, thc:220, cbd:0,   fx:'Focus',     terps:['Terpinolene','Pinene'],         brand:'Sensi',         lin:['Haze','Northern Lights #5'],      desc:'The legend of sativas — piney spicy uplift for creative minds.'},
+  {id:20,name:'OG Kush',               s:'indica', cat:'flower',  price:48, thc:260, cbd:1,   fx:'Relax',     terps:['Myrcene','Limonene'],           brand:'Top Shelf',     lin:['Chemdawg','Hindu Kush'],          desc:'West Coast classic — earthy pine with profound body relaxation.'},
+  {id:21,name:'Durban Poison Cart',    s:'sativa', cat:'vapes',   price:35, thc:800, cbd:5,   fx:'Energize',  terps:['Terpinolene','Ocimene'],        brand:'Bloom',         lin:['Durban Poison'],                  desc:'Pure South African sativa — licorice and anise with a clear electric buzz.'},
+  {id:22,name:'Wedding Cake Pod',      s:'hybrid', cat:'vapes',   price:42, thc:850, cbd:2,   fx:'Euphoria',  terps:['Caryophyllene','Limonene'],     brand:'Select',        lin:['Triangle Kush','Animal Mints'],   desc:'Rich vanilla and tangy pepper on the exhale. Full-body euphoria.'},
+  {id:23,name:'Northern Lights Cart',  s:'indica', cat:'vapes',   price:30, thc:820, cbd:1,   fx:'Sleep',     terps:['Myrcene','Linalool'],           brand:'Rove',          lin:['Afghani','Thai'],                 desc:'Musky sweet indica classic producing body melt and restful sleep.'},
+  {id:24,name:'Strawberry Cough Resin',s:'sativa', cat:'concentrates',price:55,thc:780,cbd:3, fx:'Uplift',    terps:['Myrcene','Limonene'],           brand:'Jetty',         lin:['Haze','Strawberry Fields'],       desc:'Vivid strawberry essence preserved through live resin extraction.'},
+  {id:25,name:'Pineapple OG Badder',  s:'hybrid',  cat:'concentrates',price:60,thc:820,cbd:1, fx:'Euphoria',  terps:['Limonene','Myrcene'],           brand:'Raw Garden',    lin:['Pineapple','OG Kush'],            desc:'Tropical pineapple burst in a creamy workable badder consistency.'},
+  {id:26,name:'1:1 Rest Formula',      s:'hybrid', cat:'tinctures',price:40, thc:300, cbd:300,fx:'Sleep',     terps:['Linalool','Myrcene'],           brand:'Papa & Barkley',lin:['Broad-spectrum','OG Kush'],      desc:'Sublingual drops for nighttime recovery with balanced cannabinoids.'},
+  {id:27,name:'Sativa Rise Drops',     s:'sativa', cat:'tinctures',price:36, thc:250, cbd:50, fx:'Energize',  terps:['Limonene','Pinene'],            brand:'Dosist',        lin:['ACDC','Jack Herer'],              desc:'Morning formula to sharpen focus and elevate mood.'},
+  {id:28,name:'CBD Relief Balm',       s:'hybrid', cat:'topicals', price:28, thc:0,   cbd:500, fx:'Relief',   terps:['Caryophyllene','Menthol'],      brand:'Lord Jones',    lin:['Hemp CBD'],                       desc:'Cooling menthol balm with high-potency CBD for targeted localised relief.'},
 ];
 
-// lane config: xBias & yBias as fraction of W/H, plus colour
 const LANE={
-  sativa:{c:'#5fff80', xB:-.36, yB:-.13},
-  hybrid:{c:'#00e5ff', xB:  .0, yB: .12},
-  indica:{c:'#b06fff', xB: .36, yB:-.10},
+  sativa:{c:'#5fff80',xB:-.34,yB:-.13},
+  hybrid:{c:'#00e5ff',xB:  .0,yB: .12},
+  indica:{c:'#b06fff',xB: .34,yB:-.10},
 };
 
-// ═══════════════════════════════════════════
-//  STATE
-// ═══════════════════════════════════════════
-const ST={cat:'edibles',strain:'all',sort:'price_asc',thcMax:1e6,
-  off:0,paused:false,sel:null,speed:.32,
-  drag:false,dx:0,doff:0};
-
-// ═══════════════════════════════════════════
-//  CANVAS + CONTEXT
-// ═══════════════════════════════════════════
-const cv=document.getElementById('c');
-const cx2=cv.getContext('2d');
-let W=0,H=0,bgT=0,sparks=[];
-
-function resize(){
-  W=cv.width =window.innerWidth;
-  H=cv.height=window.innerHeight;
+function rgba(hex,a){
+  const r=parseInt(hex.slice(1,3),16);
+  const g=parseInt(hex.slice(3,5),16);
+  const b=parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
 }
 
-// ═══════════════════════════════════════════
-//  BACKGROUND — rings, rails, sparks
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════
+const ST={
+  cat:'edibles',strain:'all',sort:'price_asc',thcMax:1e6,
+  off:0,speed:.28,sel:null,
+  drag:false,dx:0,doff:0,
+  sheetOpen:false,
+};
+
+// ══════════════════════════════════════════
+//  CANVAS SIZING — use root element dimensions
+// ══════════════════════════════════════════
+const cv=document.getElementById('c');
+const ctx=cv.getContext('2d');
+let W=1,H=1,bgT=0,sparks=[];
+
+function resize(){
+  const root=document.getElementById('root');
+  W=cv.width =root.clientWidth  ||window.innerWidth;
+  H=cv.height=root.clientHeight ||window.innerHeight;
+  // force at least 100x100 so nothing is invisible
+  if(W<10) W=cv.width =window.innerWidth;
+  if(H<10) H=cv.height=window.innerHeight;
+}
+
+// ══════════════════════════════════════════
+//  BACKGROUND
+// ══════════════════════════════════════════
 function addSpark(){
   const cs=['#5fff80','#00e5ff','#b06fff','#ffd060'];
-  sparks.push({x:Math.random()*W,y:H*(.35+Math.random()*.65),
-    r:Math.random()*1.8+.5,c:cs[Math.random()*4|0],
-    vx:(Math.random()-.5)*20,vy:-(Math.random()*1.4+.6),
-    life:1,d:Math.random()*.007+.003});
+  sparks.push({
+    x:Math.random()*W, y:H*(.35+Math.random()*.65),
+    r:Math.random()*1.8+.4, c:cs[Math.random()*4|0],
+    vx:(Math.random()-.5)*18, vy:-(Math.random()*1.4+.5),
+    life:1, d:Math.random()*.007+.003,
+  });
 }
 
 function drawBg(dt){
-  const vx=W/2, vy=H*.47;
-  cx2.clearRect(0,0,W,H);
+  const vx=W/2, vy=H*.46;
+  ctx.clearRect(0,0,W,H);
 
-  // nebula
-  const nb=cx2.createRadialGradient(vx,vy,0,vx,vy,W*.48);
-  nb.addColorStop(0,'rgba(0,22,80,.18)');
-  nb.addColorStop(.5,'rgba(0,10,40,.08)');
+  // fill
+  ctx.fillStyle='#000812'; ctx.fillRect(0,0,W,H);
+
+  // nebula centre
+  const nb=ctx.createRadialGradient(vx,vy,0,vx,vy,W*.5);
+  nb.addColorStop(0,'rgba(0,22,80,.22)');
+  nb.addColorStop(.6,'rgba(0,8,30,.1)');
   nb.addColorStop(1,'transparent');
-  cx2.fillStyle=nb;cx2.fillRect(0,0,W,H);
+  ctx.fillStyle=nb; ctx.fillRect(0,0,W,H);
 
-  // tunnel rings — elliptical, converging at vanishing point
+  // tunnel rings
   for(let i=16;i>=0;i--){
     const t=i/16;
-    const rx=W*.58*t, ry=H*.54*t;
-    const hue=(bgT*14+t*200)%360;
-    const a=.03+t*.055;
-    cx2.beginPath();
-    cx2.ellipse(vx,vy,Math.max(rx,1),Math.max(ry,1),0,0,Math.PI*2);
-    cx2.strokeStyle=`hsla(${hue},72%,58%,${a})`;
-    cx2.lineWidth=t<.18?.6:1.1;
-    cx2.stroke();
+    ctx.beginPath();
+    ctx.ellipse(vx,vy, Math.max(1,W*.58*t), Math.max(1,H*.54*t),0,0,Math.PI*2);
+    ctx.strokeStyle=`hsla(${(bgT*14+t*200)%360},72%,58%,${.04+t*.06})`;
+    ctx.lineWidth=t<.2?.6:1.1;
+    ctx.stroke();
   }
 
-  // 4 perspective rail lines to vanishing point
-  [[-.47,1],[-.17,1],[.17,1],[.47,1]].forEach(([xf],i)=>{
-    cx2.beginPath();
-    cx2.moveTo(vx+xf*W,H);
-    cx2.lineTo(vx,vy-H*.01);
-    cx2.strokeStyle=`rgba(0,200,255,${i===0||i===3?.07:.04})`;
-    cx2.lineWidth=i===0||i===3?1.1:.65;
-    cx2.stroke();
+  // rail lines to vanishing point
+  [-.46,-.16,.16,.46].forEach((xf,i)=>{
+    ctx.beginPath();
+    ctx.moveTo(vx+xf*W, H);
+    ctx.lineTo(vx, vy);
+    ctx.strokeStyle=`rgba(0,200,255,${i===0||i===3?.07:.04})`;
+    ctx.lineWidth=i===0||i===3?1.1:.65;
+    ctx.stroke();
   });
 
-  // strain lane colour hazes at left/center/right
-  [['#5fff80',-.36],['#00e5ff',0],['#b06fff',.36]].forEach(([col,xf])=>{
-    const gx=vx+xf*W*.5, gy=H*.65;
-    const hg=cx2.createRadialGradient(gx,gy,0,gx,gy,W*.18);
-    hg.addColorStop(0,col.replace('#','rgba(').replace(/(.{2})(.{2})(.{2})/,
-      (_,r,g,b)=>`rgba(${parseInt(r,16)},${parseInt(g,16)},${parseInt(b,16)}`)+`,.06)`);
+  // lane colour hazes
+  Object.entries(LANE).forEach(([,l])=>{
+    const gx=vx+l.xB*W*.5, gy=H*.7;
+    const hg=ctx.createRadialGradient(gx,gy,0,gx,gy,W*.2);
+    hg.addColorStop(0,rgba(l.c,.07));
     hg.addColorStop(1,'transparent');
-    cx2.fillStyle=hg;cx2.fillRect(0,0,W,H);
+    ctx.fillStyle=hg; ctx.fillRect(0,0,W,H);
   });
 
   // sparks
-  if(!ST.paused&&Math.random()<.07) addSpark();
+  if(Math.random()<.07) addSpark();
   for(let i=sparks.length-1;i>=0;i--){
     const sp=sparks[i];
-    const pace=ST.paused?.1:1;
-    sp.x+=sp.vx*dt*pace;
-    sp.y+=sp.vy*55*dt*pace;
-    sp.life-=sp.d*pace;
+    sp.x+=sp.vx*dt; sp.y+=sp.vy*55*dt; sp.life-=sp.d;
     if(sp.life<=0){sparks.splice(i,1);continue;}
-    cx2.globalAlpha=sp.life*.7;
-    cx2.beginPath();cx2.arc(sp.x,sp.y,sp.r,0,Math.PI*2);
-    cx2.fillStyle=sp.c;cx2.fill();
+    ctx.globalAlpha=sp.life*.7;
+    ctx.beginPath(); ctx.arc(sp.x,sp.y,sp.r,0,Math.PI*2);
+    ctx.fillStyle=sp.c; ctx.fill();
   }
-  cx2.globalAlpha=1;
+  ctx.globalAlpha=1;
 }
 
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════════
 //  PRODUCT HELPERS
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════════
 function getProds(){
   return P
     .filter(p=>p.cat===ST.cat)
@@ -407,318 +432,274 @@ function buildOrder(prods){
   return out;
 }
 
-// ═══════════════════════════════════════════
-//  HIT-TEST rectangles for click detection
-// ═══════════════════════════════════════════
-let hitRects=[];  // {id, x, y, w, h}
+// ══════════════════════════════════════════
+//  DRAW HEXAGONAL CARDS ON CANVAS
+// ══════════════════════════════════════════
+const SPAN=4.6, CN=168, CF=46;
+let hits=[];  // click hit rects
 
-// ═══════════════════════════════════════════
-//  DRAW CARDS ON CANVAS
-// ═══════════════════════════════════════════
-const SPAN=4.8, CN=160, CF=48;
-
-function drawRoundedHex(ctx,x,y,w,h,r){
-  // draw a rounded hexagon centred at x,y
-  const hw=w/2,hh=h/2;
-  const pts=[
-    [x-hw*.5, y-hh],[x+hw*.5, y-hh],
-    [x+hw, y],[x+hw*.5, y+hh],[x-hw*.5, y+hh],[x-hw, y]
-  ];
+function hexPath(ctx,x,y,w,h){
+  const hw=w/2, hh=h/2;
   ctx.beginPath();
-  pts.forEach(([px,py],i)=>{
-    if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
-  });
+  ctx.moveTo(x-hw*.5, y-hh);
+  ctx.lineTo(x+hw*.5, y-hh);
+  ctx.lineTo(x+hw,    y);
+  ctx.lineTo(x+hw*.5, y+hh);
+  ctx.lineTo(x-hw*.5, y+hh);
+  ctx.lineTo(x-hw,    y);
   ctx.closePath();
 }
 
 function drawCards(ordered,total){
-  if(!total) return;
-  hitRects=[];
-  const vx=W/2, vy=H*.47;
-
-  // collect items, sort far→near so near cards paint on top
+  if(!total){hits=[];return;}
+  hits=[];
+  const vx=W/2, vy=H*.46;
   const items=[];
   ordered.forEach((prod,i)=>{
     let rel=i-ST.off%(total||1);
-    if(total>=6){
-      while(rel>total/2)  rel-=total;
-      while(rel<-total/2) rel+=total;
-    }
+    if(total>=6){ while(rel>total/2)rel-=total; while(rel<-total/2)rel+=total; }
     if(Math.abs(rel)>SPAN) return;
     const depth=Math.max(0,1-Math.abs(rel)/SPAN);
     const ease=depth*depth;
     items.push({prod,rel,depth,ease});
   });
-  items.sort((a,b)=>a.depth-b.depth);
+  items.sort((a,b)=>a.depth-b.depth); // far→near
 
-  const prevByStrain={};
+  const prev={};
 
   items.forEach(({prod,rel,depth,ease})=>{
-    const lane=LANE[prod.s]||LANE.hybrid;
-    const col=lane.c;
-    const px=vx + lane.xB*W*ease*.72;
-    const py=vy + lane.yB*H*ease*.46 + rel*H*.040*(1-depth*.5);
-    const cw=(CF+(CN-CF)*ease);
+    const l=LANE[prod.s]||LANE.hybrid;
+    const col=l.c;
+    const px=vx + l.xB*W*ease*.74;
+    const py=vy + l.yB*H*ease*.46 + rel*H*.038*(1-depth*.5);
+    const cw=CF+(CN-CF)*ease;
     const ch=cw*1.12;
     const alpha=.18+depth*.82;
     const isSel=ST.sel===prod.id;
 
-    // branch connection line (Bézier)
-    if(prevByStrain[prod.s]&&depth>.1){
-      const pv=prevByStrain[prod.s];
-      const mx2=(pv.x+px)/2, my2=(pv.y+py)/2-14*ease;
-      cx2.beginPath();
-      cx2.moveTo(pv.x,pv.y);
-      cx2.quadraticCurveTo(mx2,my2,px,py);
-      const lAlpha=Math.min(depth,pv.depth)*.28;
-      cx2.strokeStyle=hexAlpha(col,lAlpha);
-      cx2.setLineDash([3,8]);
-      cx2.lineWidth=ease*1.8;
-      cx2.stroke();
-      cx2.setLineDash([]);
+    // branch line (Bézier)
+    if(prev[prod.s]&&depth>.08){
+      const pv=prev[prod.s];
+      const mx=(pv.x+px)/2, my=(pv.y+py)/2-12*ease;
+      ctx.beginPath();
+      ctx.moveTo(pv.x,pv.y);
+      ctx.quadraticCurveTo(mx,my,px,py);
+      ctx.strokeStyle=rgba(col,Math.min(depth,pv.depth)*.28);
+      ctx.setLineDash([3,9]);
+      ctx.lineWidth=ease*1.6;
+      ctx.stroke();
+      ctx.setLineDash([]);
     }
-    prevByStrain[prod.s]={x:px,y:py,depth};
+    prev[prod.s]={x:px,y:py,depth};
 
     // outer glow
-    if(depth>.3){
-      const glowR=cw*.75;
-      const rg=cx2.createRadialGradient(px,py,0,px,py,glowR);
-      rg.addColorStop(0,hexAlpha(col,ease*(isSel?.28:.1)));
-      rg.addColorStop(1,'transparent');
-      cx2.fillStyle=rg;
-      cx2.beginPath();
-      cx2.arc(px,py,glowR,0,Math.PI*2);
-      cx2.fill();
+    if(ease>.1){
+      const gr=ctx.createRadialGradient(px,py,0,px,py,cw*.78);
+      gr.addColorStop(0,rgba(col,ease*(isSel?.32:.12)));
+      gr.addColorStop(1,'transparent');
+      ctx.fillStyle=gr;
+      ctx.beginPath(); ctx.arc(px,py,cw*.78,0,Math.PI*2); ctx.fill();
     }
 
-    // hexagon fill
-    cx2.globalAlpha=alpha;
-    drawRoundedHex(cx2,px,py,cw,ch,4);
-    cx2.fillStyle=`rgba(0,${8+ease*14|0},${20+ease*28|0},.92)`;
-    cx2.fill();
+    // hex fill
+    ctx.globalAlpha=alpha;
+    hexPath(ctx,px,py,cw,ch);
+    ctx.fillStyle=`rgba(0,${8+ease*14|0},${22+ease*28|0},.93)`;
+    ctx.fill();
 
     // hex stroke
-    cx2.strokeStyle=isSel?col:hexAlpha(col,.45+ease*.45);
-    cx2.lineWidth=isSel?2.5:1.4*ease+.4;
-    cx2.stroke();
+    ctx.strokeStyle=isSel ? col : rgba(col,.4+ease*.5);
+    ctx.lineWidth=isSel?2.8:ease*1.5+.4;
+    ctx.stroke();
 
-    // inner glow on selected
+    // selected rings
     if(isSel){
-      drawRoundedHex(cx2,px,py,cw,ch,4);
-      cx2.strokeStyle=hexAlpha(col,.55);
-      cx2.lineWidth=5;
-      cx2.stroke();
-      // pulse ring
-      const pr=cw*.72;
-      cx2.beginPath();cx2.arc(px,py,pr,0,Math.PI*2);
-      cx2.strokeStyle=hexAlpha(col,.35+Math.sin(bgT*3)*.2);
-      cx2.lineWidth=2;cx2.stroke();
+      hexPath(ctx,px,py,cw+8,ch+8);
+      ctx.strokeStyle=rgba(col,.4+Math.sin(bgT*3)*.25);
+      ctx.lineWidth=3; ctx.stroke();
+      hexPath(ctx,px,py,cw+18,ch+18);
+      ctx.strokeStyle=rgba(col,.15+Math.sin(bgT*3+1)*.1);
+      ctx.lineWidth=2; ctx.stroke();
     }
 
-    // text — only when big enough
-    if(cw>70){
-      cx2.globalAlpha=alpha;
-      const fs=Math.max(8,cw*.075);
+    // text (only when big enough)
+    if(cw>68){
+      const fs=Math.max(7.5, cw*.073);
+      ctx.globalAlpha=alpha;
+      ctx.textAlign='center';
 
-      // effect label
-      cx2.font=`600 ${fs*.82}px 'Segoe UI',sans-serif`;
-      cx2.fillStyle=col;cx2.textAlign='center';
-      cx2.fillText(prod.fx.toUpperCase(), px, py-ch*.24);
+      // effect tag
+      ctx.font=`600 ${fs*.8}px 'Segoe UI',sans-serif`;
+      ctx.fillStyle=col; ctx.globalAlpha=alpha*.8;
+      ctx.fillText(prod.fx, px, py-ch*.25);
 
-      // product name (wrap if needed)
-      cx2.font=`700 ${fs}px 'Segoe UI',sans-serif`;
-      cx2.fillStyle='#ffffff';
+      // name — word wrap
+      ctx.globalAlpha=alpha;
+      ctx.font=`700 ${fs}px 'Segoe UI',sans-serif`;
+      ctx.fillStyle='#fff';
       const words=prod.name.split(' ');
-      let line='',lines=[],lineH=fs*1.3;
+      let cur='', lines=[];
       words.forEach(w=>{
-        const test=(line?line+' ':'')+w;
-        if(cx2.measureText(test).width>cw*.8&&line){
-          lines.push(line);line=w;
-        } else line=test;
+        const t=(cur?cur+' ':'')+w;
+        if(ctx.measureText(t).width>cw*.8&&cur){lines.push(cur);cur=w;}
+        else cur=t;
       });
-      lines.push(line);
-      const totalH=lines.length*lineH;
-      lines.forEach((l,i)=>cx2.fillText(l,px,py-totalH/2+i*lineH+fs/2));
+      lines.push(cur);
+      const lh=fs*1.3, tot=lines.length*lh;
+      lines.forEach((ln,i)=>ctx.fillText(ln,px,py-tot/2+i*lh+fs/2));
 
       // price
-      cx2.font=`800 ${fs*1.2}px 'Segoe UI',sans-serif`;
-      cx2.fillStyle='#ffffff';
-      cx2.fillText('$'+prod.price, px, py+ch*.23);
+      ctx.font=`800 ${fs*1.25}px 'Segoe UI',sans-serif`;
+      ctx.fillStyle='#fff';
+      ctx.fillText('$'+prod.price, px, py+ch*.24);
 
-      // thc label
+      // THC
       if(cw>100){
         const thcL=prod.thc>=100?(prod.thc/10|0)+'mg':prod.thc+'mg';
-        cx2.font=`${fs*.75}px 'Segoe UI',sans-serif`;
-        cx2.fillStyle='rgba(150,170,190,.75)';
-        cx2.fillText(thcL+' THC', px, py+ch*.33);
+        ctx.font=`${fs*.72}px 'Segoe UI',sans-serif`;
+        ctx.fillStyle='rgba(140,165,185,.7)';
+        ctx.fillText(thcL+' THC', px, py+ch*.34);
       }
 
-      // brand dot row
-      if(cw>110){
-        cx2.font=`${fs*.72}px 'Segoe UI',sans-serif`;
-        cx2.fillStyle='rgba(100,130,150,.6)';
-        cx2.fillText(prod.brand, px, py-ch*.35);
+      // brand
+      if(cw>112){
+        ctx.font=`${fs*.7}px 'Segoe UI',sans-serif`;
+        ctx.fillStyle='rgba(100,130,150,.55)';
+        ctx.fillText(prod.brand, px, py-ch*.36);
       }
 
       // terpene dots
       if(cw>90){
         const nd=Math.min(prod.terps.length,3);
-        const gap=8;
-        const startX=px-(nd-1)*gap/2;
+        const gap=7, sx=px-(nd-1)*gap/2;
+        ctx.globalAlpha=alpha*.4;
         for(let d=0;d<nd;d++){
-          cx2.beginPath();
-          cx2.arc(startX+d*gap, py+ch*.42, 2.5,0,Math.PI*2);
-          cx2.fillStyle=col;cx2.globalAlpha=alpha*.45;cx2.fill();
+          ctx.beginPath(); ctx.arc(sx+d*gap,py+ch*.43,2.2,0,Math.PI*2);
+          ctx.fillStyle=col; ctx.fill();
         }
-        cx2.globalAlpha=alpha;
+      }
+
+      // lane tag above nearest cards
+      if(depth>.7&&ease>.48){
+        const tag=prod.s.charAt(0).toUpperCase()+prod.s.slice(1);
+        ctx.globalAlpha=.72*ease;
+        ctx.font=`700 ${Math.max(9,cw*.068)}px 'Segoe UI',sans-serif`;
+        ctx.fillStyle=col;
+        ctx.fillText(tag, px, py-ch*.58);
       }
     }
 
-    // lane tag above the nearest (deepest) card
-    if(depth>.72&&ease>.5){
-      const tag=prod.s.toUpperCase();
-      cx2.globalAlpha=.7*ease;
-      cx2.font=`700 ${Math.max(9,cw*.065)}px 'Segoe UI',sans-serif`;
-      cx2.fillStyle=col;
-      cx2.fillText(tag, px, py-ch*.58);
-    }
-
-    cx2.globalAlpha=1;
-
-    // save hit rect
-    hitRects.push({id:prod.id, x:px-cw/2, y:py-ch/2, w:cw, h:ch});
+    ctx.globalAlpha=1;
+    hits.push({id:prod.id,x:px-cw/2,y:py-ch/2,w:cw,h:ch});
   });
 }
 
-// helper: hex colour + alpha  "#rrggbb" -> "rgba(r,g,b,a)"
-function hexAlpha(hex,a){
-  const r=parseInt(hex.slice(1,3),16);
-  const g=parseInt(hex.slice(3,5),16);
-  const b=parseInt(hex.slice(5,7),16);
-  return `rgba(${r},${g},${b},${a})`;
-}
-
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════════
 //  MINIMAP
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════════
 function updateMiniMap(ordered,total){
   const mm=document.getElementById('mmap');
   mm.querySelectorAll('.mmn').forEach(e=>e.remove());
-  const mw=mm.clientWidth, mh=mm.clientHeight;
+  const mw=mm.clientWidth||160, mh=mm.clientHeight||64;
   ordered.forEach((p,i)=>{
-    const lane=LANE[p.s]||LANE.hybrid;
-    const mx=(total>1?(i/(total-1)):0.5)*mw;
-    const my=mh/2+lane.xB*mh*.5;
+    const l=LANE[p.s]||LANE.hybrid;
+    const mx=(total>1?i/(total-1):.5)*mw;
+    const my=mh/2+l.xB*mh*.5;
     const n=document.createElement('div');
     n.className='mmn';
-    n.style.cssText=`width:4px;height:4px;background:${lane.c};left:${mx-2}px;top:${my-2}px`;
+    n.style.cssText=`width:4px;height:4px;background:${l.c};left:${mx-2}px;top:${my-2}px`;
     mm.appendChild(n);
   });
-  const cursor=document.getElementById('mmc');
+  const c=document.getElementById('mmc');
   const frac=total>1?(ST.off%total)/(total-1):.5;
-  cursor.style.left=Math.max(0,Math.min(mw-2,frac*mw))+'px';
+  c.style.left=Math.max(0,Math.min(mw-2,frac*mw))+'px';
 }
 
-// ═══════════════════════════════════════════
-//  MAIN RENDER (called every frame)
-// ═══════════════════════════════════════════
-function render(dt){
-  drawBg(dt);
-  const prods=getProds(), ordered=buildOrder(prods), total=ordered.length;
-  drawCards(ordered,total);
-  // HUD
-  if(total>0){
-    const idx=Math.round(ST.off)%total;
-    const p=ordered[Math.max(0,idx)];
-    if(p) document.getElementById('pnow').textContent=p.price;
-  }
-  updateMiniMap(ordered,total);
-}
-
-// ═══════════════════════════════════════════
-//  DETAIL PANEL
-// ═══════════════════════════════════════════
-function selectProduct(id){
+// ══════════════════════════════════════════
+//  DETAIL BOTTOM SHEET — opens when hex clicked
+// ══════════════════════════════════════════
+function openSheet(id){
   ST.sel=id;
   const p=P.find(x=>x.id===id); if(!p) return;
-  const lane=LANE[p.s]||LANE.hybrid;
+  const l=LANE[p.s]||LANE.hybrid;
   const thcL=p.thc>=100?(p.thc/10|0)+'mg':p.thc+'mg';
   const cbdL=p.cbd>0?(p.cbd>=100?(p.cbd/10|0)+'mg':p.cbd+'mg'):'None';
-  const pf=document.getElementById('pfill');
-  pf.style.setProperty('--lc',lane.c);
-  pf.innerHTML=`
-    <div class="dbar" style="background:${lane.c};box-shadow:0 0 10px ${lane.c}"></div>
-    <div class="dname">${p.name}</div>
-    <div class="dsub">${p.s.charAt(0).toUpperCase()+p.s.slice(1)} · ${p.fx}</div>
-    <div class="dprice">$${p.price}</div>
-    <div class="dthc">${thcL} THC · ${cbdL} CBD</div>
-    <div class="dgrid">
-      <div class="dcell"><div class="dclbl">Effect</div><div class="dcval">${p.fx}</div></div>
-      <div class="dcell"><div class="dclbl">Strain</div><div class="dcval" style="color:${lane.c}">${p.s.charAt(0).toUpperCase()+p.s.slice(1)}</div></div>
-      <div class="dcell"><div class="dclbl">THC</div><div class="dcval">${thcL}</div></div>
-      <div class="dcell"><div class="dclbl">Brand</div><div class="dcval">${p.brand}</div></div>
+
+  // hex header SVG
+  const hexSvg=`<svg width="54" height="62" viewBox="0 0 54 62">
+    <polygon points="27,2 51,15.5 51,46.5 27,60 3,46.5 3,15.5" fill="rgba(0,8,22,.95)" stroke="${l.c}" stroke-width="2"/>
+    <text x="27" y="28" text-anchor="middle" font-family="Segoe UI,sans-serif" font-size="8" font-weight="700" fill="${l.c}" letter-spacing="1">${p.fx}</text>
+    <text x="27" y="42" text-anchor="middle" font-family="Segoe UI,sans-serif" font-size="11" font-weight="800" fill="#fff">$${p.price}</text>
+  </svg>`;
+
+  document.getElementById('sheet-hex').innerHTML=`
+    <div class="sh-hex">${hexSvg}</div>
+    <div class="sh-info">
+      <div class="sh-name">${p.name}</div>
+      <div class="sh-sub">${p.s.charAt(0).toUpperCase()+p.s.slice(1)} · ${p.brand} · ${thcL} THC</div>
     </div>
-    <p class="ddesc">${p.desc}</p>
-    <div class="dsh">Terpenes</div>
-    <div class="tlist">${p.terps.map(t=>`<span class="tchip">${t}</span>`).join('')}</div>
-    <div class="dsh">Phyletic Lineage</div>
-    <div class="pbox">
-      ${p.lin.map((l,i)=>`<div>${'&nbsp;'.repeat(i*3)}${i?'└─ ':''}${l}</div>`).join('')}
-      <div>${'&nbsp;'.repeat(p.lin.length*3)}└─ <span class="pfinal" style="color:${lane.c}">${p.name}</span></div>
+    <div class="sh-price">$${p.price}</div>
+  `;
+
+  document.getElementById('sheet-scroll').innerHTML=`
+    <div class="sg">
+      <div class="sc"><div class="scl">Effect</div><div class="scv">${p.fx}</div></div>
+      <div class="sc"><div class="scl">Strain</div><div class="scv" style="color:${l.c}">${p.s.charAt(0).toUpperCase()+p.s.slice(1)}</div></div>
+      <div class="sc"><div class="scl">THC</div><div class="scv">${thcL}</div></div>
+      <div class="sc"><div class="scl">CBD</div><div class="scv">${cbdL}</div></div>
     </div>
-    <button class="dbtn p" onclick="alert('Added!')">Add to Cart — $${p.price}</button>
-    <button class="dbtn g">☆ Save to Favourites</button>`;
-  openPanel();
+    <p class="sdesc">${p.desc}</p>
+    <div class="ssh">Terpenes</div>
+    <div class="tlist">${p.terps.map(t=>`<span class="tc">${t}</span>`).join('')}</div>
+    <div class="ssh">Phyletic Lineage</div>
+    <div class="phylo">
+      ${p.lin.map((ln,i)=>`<div>${'&nbsp;'.repeat(i*3)}${i?'└─ ':''}${ln}</div>`).join('')}
+      <div>${'&nbsp;'.repeat(p.lin.length*3)}└─ <span class="pfin" style="color:${l.c}">${p.name}</span></div>
+    </div>
+    <button class="sadd" onclick="addToCart(${p.id})">Add to Cart &nbsp;—&nbsp; $${p.price}</button>
+    <button class="sfav">☆ Save to Favourites</button>
+  `;
+
+  document.getElementById('sheet').classList.add('open');
+  document.getElementById('dim').classList.add('show');
+  ST.sheetOpen=true;
 }
 
-function openPanel(){
-  document.getElementById('panel').classList.add('open');
-  document.getElementById('ptoggle').style.display='flex';
-  document.getElementById('ptoggle').classList.add('on');
+function closeSheet(){
+  ST.sel=null; ST.sheetOpen=false;
+  document.getElementById('sheet').classList.remove('open');
+  document.getElementById('dim').classList.remove('show');
 }
-function closePanel(){
-  ST.sel=null;
-  document.getElementById('panel').classList.remove('open');
-  document.getElementById('ptoggle').classList.remove('on');
-}
-window.closePanel=closePanel;
+window.closeSheet=closeSheet;
 
-// ═══════════════════════════════════════════
-//  DRAWER / PANEL TOGGLES
-// ═══════════════════════════════════════════
+function addToCart(id){
+  const p=P.find(x=>x.id===id);
+  if(p) alert(`Added "${p.name}" ($${p.price}) to cart!`);
+}
+window.addToCart=addToCart;
+
+// ══════════════════════════════════════════
+//  FILTER DRAWER
+// ══════════════════════════════════════════
 function toggleDrawer(){
   const d=document.getElementById('drawer');
   const t=document.getElementById('ftoggle');
-  d.classList.toggle('open');t.classList.toggle('on',d.classList.contains('open'));
+  const open=d.classList.toggle('open');
+  t.classList.toggle('on',open);
 }
-function togglePanel(){
-  const p=document.getElementById('panel');
-  if(p.classList.contains('open')) closePanel();
-  else openPanel();
-}
-window.toggleDrawer=toggleDrawer; window.togglePanel=togglePanel;
+window.toggleDrawer=toggleDrawer;
 
-// ═══════════════════════════════════════════
-//  NAV / CONTROLS
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════════
+//  NAV
+// ══════════════════════════════════════════
 function step(d){ ST.off+=d; }
-function jump(d){ ST.off+=d; }
-function seekTo(pct){
-  const pr=getProds(); if(!pr.length) return;
-  ST.off=(pct/100)*(pr.length-1);
-}
-function togglePause(){
-  ST.paused=!ST.paused;
-  document.getElementById('playbtn').textContent=ST.paused?'▶':'⏸';
-  document.getElementById('po').classList.toggle('show',ST.paused);
-}
-window.step=step;window.jump=jump;window.seekTo=seekTo;window.togglePause=togglePause;
+window.step=step;
 
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════════
 //  FILTERS
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════════
 function setCat(btn){
-  ST.cat=btn.dataset.c; ST.off=0; closePanel();
+  ST.cat=btn.dataset.c; ST.off=0; closeSheet();
   document.querySelectorAll('.cat').forEach(b=>b.classList.toggle('on',b===btn));
 }
 function setStrain(row){
@@ -730,69 +711,106 @@ function setSort(row){
   document.querySelectorAll('[data-o]').forEach(r=>r.classList.toggle('on',r===row));
 }
 function setTHC(inp){
-  ST.thcMax=parseInt(inp.value)*10;
+  ST.thcMax=+inp.value*10;
   document.getElementById('tval').textContent=inp.value;
 }
-window.setCat=setCat;window.setStrain=setStrain;window.setSort=setSort;window.setTHC=setTHC;
+window.setCat=setCat; window.setStrain=setStrain;
+window.setSort=setSort; window.setTHC=setTHC;
 
-// ═══════════════════════════════════════════
-//  INPUT — drag, wheel, click, keyboard
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════════
+//  DRAG / TOUCH / WHEEL / CLICK
+// ══════════════════════════════════════════
 cv.addEventListener('mousedown',e=>{
+  if(ST.sheetOpen) return;
   ST.drag=true; ST.dx=e.clientX; ST.doff=ST.off;
 });
 window.addEventListener('mousemove',e=>{
   if(!ST.drag) return;
-  ST.off=ST.doff-(e.clientX-ST.dx)/85;
+  ST.off=ST.doff-(e.clientX-ST.dx)/82;
 });
 window.addEventListener('mouseup',()=>{ ST.drag=false; });
 
-cv.addEventListener('touchstart',e=>{ ST.drag=true;ST.dx=e.touches[0].clientX;ST.doff=ST.off; },{passive:true});
-cv.addEventListener('touchmove', e=>{ if(!ST.drag)return; ST.off=ST.doff-(e.touches[0].clientX-ST.dx)/85; },{passive:true});
-cv.addEventListener('touchend', ()=>{ ST.drag=false; });
+cv.addEventListener('touchstart',e=>{
+  if(ST.sheetOpen) return;
+  ST.drag=true; ST.dx=e.touches[0].clientX; ST.doff=ST.off;
+},{passive:true});
+cv.addEventListener('touchmove',e=>{
+  if(!ST.drag) return;
+  ST.off=ST.doff-(e.touches[0].clientX-ST.dx)/82;
+},{passive:true});
+cv.addEventListener('touchend',()=>{ ST.drag=false; });
 
-cv.addEventListener('wheel',e=>{ ST.off+=e.deltaY*.01; e.preventDefault(); },{passive:false});
+cv.addEventListener('wheel',e=>{
+  if(!ST.sheetOpen){ ST.off+=e.deltaY*.01; e.preventDefault(); }
+},{passive:false});
 
 cv.addEventListener('click',e=>{
+  if(ST.sheetOpen) return;
   const rect=cv.getBoundingClientRect();
   const mx=e.clientX-rect.left, my=e.clientY-rect.top;
-  // check hit rects (in reverse paint order = near→far)
-  for(let i=hitRects.length-1;i>=0;i--){
-    const h=hitRects[i];
+  for(let i=hits.length-1;i>=0;i--){
+    const h=hits[i];
     if(mx>=h.x&&mx<=h.x+h.w&&my>=h.y&&my<=h.y+h.h){
-      selectProduct(h.id); return;
+      openSheet(h.id); return;
     }
   }
+});
+
+// sheet swipe-down to close
+let sheetDragY=0, sheetDragStart=0;
+const sheet=document.getElementById('sheet');
+sheet.addEventListener('touchstart',e=>{ sheetDragStart=e.touches[0].clientY; },{passive:true});
+sheet.addEventListener('touchmove',e=>{
+  const dy=e.touches[0].clientY-sheetDragStart;
+  if(dy>0) sheet.style.transform=`translateY(${dy}px)`;
+},{passive:true});
+sheet.addEventListener('touchend',e=>{
+  const dy=e.changedTouches[0].clientY-sheetDragStart;
+  if(dy>80){ closeSheet(); sheet.style.transform=''; }
+  else sheet.style.transform='';
 });
 
 document.addEventListener('keydown',e=>{
   if(e.key==='ArrowRight'||e.key==='ArrowDown'){step(1);e.preventDefault();}
   else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){step(-1);e.preventDefault();}
-  else if(e.key==='PageDown'){jump(3);e.preventDefault();}
-  else if(e.key==='PageUp'){jump(-3);e.preventDefault();}
-  else if(e.key===' '){togglePause();e.preventDefault();}
-  else if(e.key==='Escape'){closePanel();}
-  else if(e.key==='f'||e.key==='F'){toggleDrawer();}
+  else if(e.key==='PageDown'){step(3);e.preventDefault();}
+  else if(e.key==='PageUp'){step(-3);e.preventDefault();}
+  else if(e.key==='Escape'){if(ST.sheetOpen)closeSheet();else if(document.getElementById('drawer').classList.contains('open'))toggleDrawer();}
+  else if(e.key==='f'||e.key==='F') toggleDrawer();
 });
 
-// ═══════════════════════════════════════════
-//  ANIMATION LOOP
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════════
+//  MAIN LOOP
+// ══════════════════════════════════════════
 let lastTs=null;
 function loop(ts){
   if(!lastTs) lastTs=ts;
   const dt=Math.min((ts-lastTs)/1000,.08); lastTs=ts; bgT+=dt;
-  if(!ST.paused&&!ST.drag){
+
+  // auto-scroll when not dragging and sheet is closed
+  if(!ST.drag&&!ST.sheetOpen){
     ST.off+=ST.speed*dt;
     const pr=getProds(); if(pr.length) ST.off%=pr.length;
   }
-  render(dt);
+
+  drawBg(dt);
+  const prods=getProds(), ordered=buildOrder(prods), total=prods.length;
+  drawCards(ordered,total);
+  updateMiniMap(ordered,total);
+
   requestAnimationFrame(loop);
 }
 
+// ══════════════════════════════════════════
+//  INIT — defer one frame so root has layout
+// ══════════════════════════════════════════
 window.addEventListener('resize',resize);
-resize();
-requestAnimationFrame(loop);
+
+// Double rAF ensures the DOM has painted and root has real dimensions
+requestAnimationFrame(()=>requestAnimationFrame(()=>{
+  resize();
+  requestAnimationFrame(loop);
+}));
 </script>
 </body>
 </html>
