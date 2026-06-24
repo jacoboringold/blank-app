@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>NeuoTunnel — Cannabis Discovery Kiosk</title>
+<style>
+/* ═══════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --sativa:  #5fff80;
+  --indica:  #b06fff;
+  --hybrid:  #00e5ff;
+  --gold:    #ffd060;
+  --bg:      #000812;
+  --panel:   rgba(0,10,25,.92);
+  --border:  rgba(0,180,255,.15);
+  --text:    #c8d8e8;
+  --dim:     #4a6070;
+  --accent:  #00e5ff;
+  --font:    'Segoe UI', system-ui, sans-serif;
+  --ease:    cubic-bezier(.22,.68,0,1.2);
+}
+html, body {
+  width: 100vw; height: 100vh;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ═══════════════════════════════════════════════
+   LAYOUT GRID
+═══════════════════════════════════════════════ */
+#app {
+  display: grid;
+  grid-template-columns: 200px 1fr 272px;
+  grid-template-rows: 52px 1fr 96px;
+  width: 100vw; height: 100vh;
+}
+
+/* ═══════════════════════════════════════════════
+   TOP BAR
+═══════════════════════════════════════════════ */
+#topbar {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 20px;
+  background: rgba(0,6,18,.95);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  z-index: 50;
+}
+.logo-mark {
+  display: flex; flex-direction: column; gap: 1px;
+  margin-right: 4px;
+}
+.logo-mark svg { display: block; }
+.logo-text { font-size: 15px; font-weight: 800; letter-spacing: 3px; color: var(--accent); }
+.logo-sub  { font-size: 9px;  font-weight: 400; letter-spacing: 4px; color: var(--sativa); }
+.topbar-loc {
+  font-size: 11px; color: var(--dim);
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+.topbar-loc b { color: #fff; }
+#you-are-here {
+  font-size: 11px; color: var(--gold);
+  padding: 4px 12px;
+  border: 1px solid rgba(255,208,96,.3);
+  border-radius: 20px;
+  background: rgba(255,208,96,.06);
+}
+/* Category tabs */
+#cat-rail {
+  display: flex; gap: 4px;
+  margin-left: auto;
+}
+.cat-pill {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 14px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--dim);
+  font-size: 11px; font-weight: 600; letter-spacing: .5px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.cat-pill:hover { color: #fff; border-color: rgba(255,255,255,.3); background: rgba(255,255,255,.05); }
+.cat-pill.active { color: var(--accent); border-color: var(--accent); background: rgba(0,229,255,.1); box-shadow: 0 0 14px rgba(0,229,255,.2); }
+.cat-pill .icon { font-size: 13px; }
+
+/* ═══════════════════════════════════════════════
+   LEFT SIDEBAR
+═══════════════════════════════════════════════ */
+#sidebar {
+  grid-column: 1; grid-row: 2 / 4;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  padding: 16px 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,229,255,.2) transparent;
+  z-index: 20;
+}
+.sb-h {
+  font-size: 9px; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--accent); opacity: .7; margin-bottom: 8px; margin-top: 16px;
+}
+.sb-h:first-child { margin-top: 0; }
+.sb-row {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 8px; border-radius: 7px;
+  font-size: 12px; color: var(--text);
+  cursor: pointer; transition: .15s;
+  user-select: none;
+}
+.sb-row:hover { background: rgba(0,229,255,.07); color: #fff; }
+.sb-row.active { background: rgba(0,229,255,.1); color: var(--accent); }
+.sb-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.d-sativa { background: var(--sativa); box-shadow: 0 0 6px var(--sativa); }
+.d-indica { background: var(--indica); box-shadow: 0 0 6px var(--indica); }
+.d-hybrid { background: var(--hybrid); box-shadow: 0 0 6px var(--hybrid); }
+.d-all    { background: linear-gradient(135deg, var(--sativa), var(--hybrid), var(--indica)); }
+.sb-check {
+  margin-left: auto; width: 14px; height: 14px;
+  border: 1.5px solid var(--accent); border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; color: var(--accent);
+  opacity: 0; transition: .15s;
+}
+.sb-row.active .sb-check { opacity: 1; }
+/* slider */
+.sb-slider {
+  width: 100%; accent-color: var(--accent);
+  cursor: pointer; margin: 6px 0 2px;
+}
+.sb-value { font-size: 10px; color: var(--dim); margin-bottom: 4px; }
+/* minimap */
+#mini-map {
+  width: 100%; height: 80px; margin-top: 8px;
+  border: 1px solid rgba(0,229,255,.18);
+  border-radius: 8px;
+  background: rgba(0,15,40,.7);
+  position: relative; overflow: hidden;
+}
+.mm-node {
+  position: absolute; border-radius: 50%;
+  transition: left .3s, top .3s;
+}
+.mm-cursor {
+  position: absolute;
+  width: 2px; height: 100%;
+  background: rgba(255,255,255,.5);
+  box-shadow: 0 0 8px rgba(255,255,255,.4);
+  top: 0; transition: left .3s;
+  pointer-events: none;
+}
+/* controls key legend */
+.key-hint {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 10px; color: var(--dim); padding: 3px 0;
+}
+.key { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); border-radius: 4px; padding: 1px 5px; font-size: 10px; color: #aaa; }
+
+/* ═══════════════════════════════════════════════
+   TUNNEL STAGE
+═══════════════════════════════════════════════ */
+#stage {
+  grid-column: 2; grid-row: 2;
+  position: relative; overflow: hidden;
+  background: radial-gradient(ellipse 70% 60% at 50% 52%, #000c2a 0%, #000812 100%);
+  cursor: grab;
+}
+#stage:active { cursor: grabbing; }
+
+/* WebGL-lite canvas for background */
+#bg-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+/* Branch paths overlay */
+#branch-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+
+/* Cards live here */
+#card-layer { position: absolute; inset: 0; z-index: 5; }
+
+/* Lane labels */
+.lane-tag {
+  position: absolute; z-index: 6;
+  font-size: 9px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+  padding: 3px 10px; border-radius: 12px;
+  opacity: 0; transition: opacity .5s;
+  pointer-events: none;
+}
+.lane-tag.show { opacity: .7; }
+
+/* ═══════════════════════════════════════════════
+   PRODUCT CARDS
+═══════════════════════════════════════════════ */
+.pcard {
+  position: absolute;
+  transform-origin: center center;
+  cursor: pointer;
+  transition: filter .25s;
+  will-change: transform, opacity, left, top, width;
+}
+.pcard-shell {
+  /* hexagonal clip */
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  background: var(--card-bg, rgba(0,12,32,.9));
+  border: none;
+  position: relative;
+  transition: clip-path .3s var(--ease);
+}
+.pcard:hover .pcard-shell,
+.pcard.sel   .pcard-shell {
+  clip-path: polygon(20% 0%, 80% 0%, 100% 50%, 80% 100%, 20% 100%, 0% 50%);
+}
+/* glow border via pseudo */
+.pcard-shell::before {
+  content: '';
+  position: absolute; inset: -2px;
+  clip-path: inherit;
+  background: var(--lane-color, #00e5ff);
+  opacity: .18;
+  transition: opacity .25s;
+  z-index: -1;
+}
+.pcard:hover .pcard-shell::before,
+.pcard.sel   .pcard-shell::before { opacity: .55; }
+.pcard.sel   .pcard-shell::before { opacity: .8; }
+
+/* inner content — absolute centered in hex */
+.pcard-body {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 18% 12%;
+  text-align: center;
+  gap: 2px;
+}
+.pc-strain-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--lane-color);
+  box-shadow: 0 0 8px var(--lane-color);
+  margin-bottom: 3px;
+}
+.pc-effect {
+  font-size: 7.5px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--lane-color); opacity: .8;
+}
+.pc-name {
+  font-size: 10.5px; font-weight: 700; line-height: 1.25;
+  color: #fff;
+}
+.pc-brand {
+  font-size: 8.5px; color: var(--dim);
+}
+.pc-price {
+  font-size: 14px; font-weight: 800; color: #fff;
+  margin-top: 3px;
+}
+.pc-thc {
+  font-size: 8px; color: var(--dim);
+}
+/* terpene dots */
+.pc-terps {
+  display: flex; gap: 3px; margin-top: 4px;
+}
+.pc-terp-dot {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--lane-color); opacity: .5;
+}
+
+/* ═══════════════════════════════════════════════
+   BOTTOM CONTROLS
+═══════════════════════════════════════════════ */
+#controls {
+  grid-column: 2; grid-row: 3;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 8px; z-index: 20;
+  padding: 0 24px;
+}
+.ctrl-row { display: flex; align-items: center; gap: 16px; }
+.ctrl-btn {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(0,229,255,.07);
+  border: 1.5px solid rgba(0,229,255,.3);
+  color: var(--accent); font-size: 16px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .18s;
+}
+.ctrl-btn:hover {
+  background: rgba(0,229,255,.18);
+  box-shadow: 0 0 18px rgba(0,229,255,.3);
+  transform: scale(1.08);
+}
+.ctrl-btn.big { width: 52px; height: 52px; font-size: 20px; }
+.ctrl-btn.big:hover { transform: scale(1.1); }
+
+/* price range track */
+.price-rail {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; max-width: 320px;
+}
+.price-label { font-size: 10px; color: var(--dim); white-space: nowrap; }
+#price-slider { flex: 1; accent-color: var(--accent); cursor: pointer; }
+.price-now { font-size: 12px; font-weight: 700; color: var(--gold); min-width: 52px; text-align: right; }
+
+/* flow speed badge */
+.flow-badge {
+  font-size: 9px; letter-spacing: 2px; color: var(--dim); text-transform: uppercase;
+  padding: 2px 8px; border: 1px solid var(--border); border-radius: 10px;
+}
+.flow-badge b { color: var(--accent); }
+
+/* ═══════════════════════════════════════════════
+   RIGHT DETAIL PANEL
+═══════════════════════════════════════════════ */
+#panel {
+  grid-column: 3; grid-row: 2 / 4;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden; z-index: 20;
+}
+#panel-header {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 9px; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--accent); opacity: .8;
+  flex-shrink: 0;
+}
+#panel-scroll {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+  padding: 14px 16px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,229,255,.2) transparent;
+}
+/* empty state */
+.p-empty {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 12px; padding-top: 50px; color: var(--dim); font-size: 11px; text-align: center;
+}
+.p-empty svg { opacity: .2; }
+
+/* detail content */
+.det-strain-bar {
+  height: 3px; border-radius: 2px; margin-bottom: 14px;
+  background: var(--lane-color);
+  box-shadow: 0 0 12px var(--lane-color);
+}
+.det-name { font-size: 17px; font-weight: 800; color: #fff; line-height: 1.2; margin-bottom: 4px; }
+.det-sub  { font-size: 11px; color: var(--dim); margin-bottom: 10px; }
+.det-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 14px; }
+.det-badge {
+  font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 10px;
+  background: rgba(var(--badge-rgb), .15);
+  border: 1px solid rgba(var(--badge-rgb), .4);
+  color: var(--lane-color);
+}
+.det-price { font-size: 32px; font-weight: 800; color: #fff; margin-bottom: 2px; }
+.det-price-sub { font-size: 10px; color: var(--dim); margin-bottom: 14px; }
+.det-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 14px; }
+.det-stat {
+  background: rgba(0,15,35,.6); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px;
+}
+.det-stat-label { font-size: 8.5px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--dim); margin-bottom: 3px; }
+.det-stat-val   { font-size: 14px; font-weight: 700; color: #fff; }
+.det-desc { font-size: 11px; color: var(--text); line-height: 1.65; margin-bottom: 14px; }
+/* terpenes */
+.det-section-h { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); opacity: .7; margin-bottom: 7px; }
+.terp-list { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 14px; }
+.terp-chip {
+  font-size: 10px; padding: 4px 10px; border-radius: 12px;
+  background: rgba(0,229,255,.07);
+  border: 1px solid rgba(0,229,255,.2);
+  color: var(--accent);
+}
+/* phylo lineage */
+.phylo-box {
+  background: rgba(0,8,22,.6);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+.phylo-entry { font-size: 11px; color: var(--text); line-height: 2; display: flex; align-items: center; gap: 6px; }
+.phylo-entry .leaf { font-size: 9px; color: var(--dim); }
+.phylo-final { color: var(--lane-color); font-weight: 700; }
+/* actions */
+.det-action {
+  width: 100%; padding: 12px; border-radius: 9px; cursor: pointer;
+  font-size: 13px; font-weight: 700; letter-spacing: .5px;
+  border: none; transition: all .2s; margin-bottom: 8px;
+}
+.det-action.primary {
+  background: linear-gradient(135deg, var(--accent) 0%, #0080ff 100%);
+  color: #000;
+}
+.det-action.primary:hover { opacity: .88; box-shadow: 0 0 24px rgba(0,229,255,.4); }
+.det-action.ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--dim);
+}
+.det-action.ghost:hover { border-color: #fff; color: #fff; }
+
+/* ═══════════════════════════════════════════════
+   PARTICLES / ATMOSPHERIC
+═══════════════════════════════════════════════ */
+@keyframes drift-up {
+  from { transform: translateY(0) translateX(0); opacity: 1; }
+  to   { transform: translateY(-240px) translateX(var(--drift-x)); opacity: 0; }
+}
+.spark {
+  position: absolute; border-radius: 50%;
+  pointer-events: none; z-index: 1;
+  animation: drift-up var(--dur) ease-in forwards;
+}
+
+/* ═══════════════════════════════════════════════
+   SCROLLBAR STYLES
+═══════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: rgba(0,229,255,.2); border-radius: 2px; }
+
+/* ═══════════════════════════════════════════════
+   SELECTED CARD RING
+═══════════════════════════════════════════════ */
+@keyframes ring-pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1);   opacity: .6; }
+  50%       { transform: translate(-50%, -50%) scale(1.12); opacity: .2; }
+}
+.sel-ring {
+  position: absolute; border-radius: 50%;
+  border: 1.5px solid var(--lane-color);
+  animation: ring-pulse 1.6s ease-in-out infinite;
+  pointer-events: none; z-index: 10;
+  left: 50%; top: 50%;
+}
+
+/* ═══════════════════════════════════════════════
+   FOCUS / PAUSE OVERLAY
+═══════════════════════════════════════════════ */
+#pause-overlay {
+  position: absolute; inset: 0; z-index: 40;
+  background: rgba(0,5,15,.7);
+  display: none; align-items: center; justify-content: center;
+  font-size: 15px; letter-spacing: 4px; color: var(--dim);
+  pointer-events: none;
+  backdrop-filter: blur(2px);
+}
+#pause-overlay.show { display: flex; }
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ════════════ TOP BAR ════════════ -->
+<header id="topbar">
+  <div class="logo-mark">
+    <svg width="22" height="22" viewBox="0 0 22 22">
+      <polygon points="11,1 20,6 20,16 11,21 2,16 2,6" fill="none" stroke="#00e5ff" stroke-width="1.5" opacity=".7"/>
+      <circle cx="11" cy="11" r="3" fill="#5fff80" opacity=".9"/>
+    </svg>
+  </div>
+  <div>
+    <div class="logo-text">NEUOTUNNEL</div>
+    <div class="logo-sub">Dispensary Kiosk</div>
+  </div>
+
+  <div class="topbar-loc">Tunnel: <b id="loc-label">Edibles</b></div>
+  <div id="you-are-here">📍 $<span id="here-price">12</span> range</div>
+
+  <nav id="cat-rail">
+    <button class="cat-pill" data-cat="flower"       onclick="setCategory(this)"><span class="icon">🌿</span> Flower</button>
+    <button class="cat-pill" data-cat="vapes"        onclick="setCategory(this)"><span class="icon">💨</span> Vapes</button>
+    <button class="cat-pill" data-cat="concentrates" onclick="setCategory(this)"><span class="icon">💎</span> Concentrates</button>
+    <button class="cat-pill active" data-cat="edibles" onclick="setCategory(this)"><span class="icon">🍬</span> Edibles</button>
+    <button class="cat-pill" data-cat="tinctures"   onclick="setCategory(this)"><span class="icon">🧪</span> Tinctures</button>
+    <button class="cat-pill" data-cat="topicals"    onclick="setCategory(this)"><span class="icon">🫧</span> Topicals</button>
+  </nav>
+</header>
+
+<!-- ════════════ SIDEBAR ════════════ -->
+<aside id="sidebar">
+  <div class="sb-h">Strain Family</div>
+  <div class="sb-row active" data-strain="all"    onclick="setStrain(this)"><div class="sb-dot d-all"></div>All Strains<div class="sb-check">✓</div></div>
+  <div class="sb-row"        data-strain="sativa"  onclick="setStrain(this)"><div class="sb-dot d-sativa"></div>Sativa<div class="sb-check">✓</div></div>
+  <div class="sb-row"        data-strain="hybrid"  onclick="setStrain(this)"><div class="sb-dot d-hybrid"></div>Hybrid<div class="sb-check">✓</div></div>
+  <div class="sb-row"        data-strain="indica"  onclick="setStrain(this)"><div class="sb-dot d-indica"></div>Indica<div class="sb-check">✓</div></div>
+
+  <div class="sb-h">Sort By</div>
+  <div class="sb-row active" data-sort="price_asc"  onclick="setSort(this)">↑ Price</div>
+  <div class="sb-row"        data-sort="price_desc" onclick="setSort(this)">↓ Price</div>
+  <div class="sb-row"        data-sort="thc_desc"   onclick="setSort(this)">⚡ THC %</div>
+  <div class="sb-row"        data-sort="terpene"    onclick="setSort(this)">🌿 Terpene</div>
+  <div class="sb-row"        data-sort="name"       onclick="setSort(this)">A→Z Name</div>
+
+  <div class="sb-h">Max THC</div>
+  <input class="sb-slider" type="range" id="thc-slider" min="1" max="100" value="100" oninput="setTHC(this)"/>
+  <div class="sb-value"><span id="thc-val">100</span>mg max</div>
+
+  <div class="sb-h">Tunnel Map</div>
+  <div id="mini-map"><div class="mm-cursor" id="mm-cursor"></div></div>
+  <div style="font-size:9px;color:var(--dim);margin-top:5px;display:flex;gap:8px">
+    <span style="color:var(--sativa)">■</span>Sativa
+    <span style="color:var(--hybrid)">■</span>Hybrid
+    <span style="color:var(--indica)">■</span>Indica
+  </div>
+
+  <div class="sb-h" style="margin-top:16px">Controls</div>
+  <div class="key-hint"><span class="key">← →</span> Navigate</div>
+  <div class="key-hint"><span class="key">Space</span> Pause</div>
+  <div class="key-hint"><span class="key">Drag</span> Scrub tunnel</div>
+  <div class="key-hint"><span class="key">Scroll</span> Flow speed</div>
+  <div class="key-hint"><span class="key">Esc</span> Deselect</div>
+</aside>
+
+<!-- ════════════ TUNNEL STAGE ════════════ -->
+<main id="stage">
+  <canvas id="bg-canvas"></canvas>
+  <svg id="branch-svg"></svg>
+  <div id="card-layer"></div>
+  <div id="pause-overlay">⏸ PAUSED — PRESS SPACE</div>
+</main>
+
+<!-- ════════════ BOTTOM CONTROLS ════════════ -->
+<footer id="controls">
+  <div class="ctrl-row">
+    <button class="ctrl-btn" onclick="jump(-5)"  title="Jump back">⏮</button>
+    <button class="ctrl-btn" onclick="step(-1)"  title="Step back">◀</button>
+    <button class="ctrl-btn big" id="play-btn" onclick="togglePause()" title="Play / Pause">⏸</button>
+    <button class="ctrl-btn" onclick="step(1)"   title="Step forward">▶</button>
+    <button class="ctrl-btn" onclick="jump(5)"   title="Jump forward">⏭</button>
+    <div class="flow-badge">Flow: <b id="flow-label">Auto</b></div>
+  </div>
+  <div class="price-rail">
+    <span class="price-label">$0</span>
+    <input type="range" id="price-slider" min="0" max="100" value="0" oninput="seekTo(+this.value)"/>
+    <span class="price-label">$80+</span>
+    <span class="price-now">$<span id="price-now">12</span></span>
+  </div>
+</footer>
+
+<!-- ════════════ RIGHT PANEL ════════════ -->
+<aside id="panel">
+  <div id="panel-header">Product Details</div>
+  <div id="panel-scroll">
+    <div class="p-empty" id="detail-empty">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+        <polygon points="24,4 42,14 42,34 24,44 6,34 6,14" stroke="#00e5ff" stroke-width="1.5"/>
+        <circle cx="24" cy="24" r="6" stroke="#5fff80" stroke-width="1.5"/>
+        <line x1="24" y1="18" x2="24" y2="14" stroke="#00e5ff" stroke-width="1"/>
+        <line x1="24" y1="30" x2="24" y2="34" stroke="#00e5ff" stroke-width="1"/>
+        <line x1="18.8" y1="21" x2="15.4" y2="19" stroke="#b06fff" stroke-width="1"/>
+        <line x1="29.2" y1="27" x2="32.6" y2="29" stroke="#b06fff" stroke-width="1"/>
+      </svg>
+      <div>Navigate the tunnel to<br/>discover a product</div>
+    </div>
+    <div id="detail-fill" style="display:none"></div>
+  </div>
+</aside>
+
+</div><!-- /app -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  PRODUCT DATA — cannabis products across phyletic branches
+// ═══════════════════════════════════════════════════════════════
+const PRODUCTS = [
+  // ── EDIBLES ────────────────────────────────────────────────
+  // Sativa branch — energizing, citrus, uplifting
+  { id:1,  name:'Sour Cherry Gummies',   sub:'Sativa · Energize',  cat:'edibles', strain:'sativa', price:5,  thcMg:50,  cbdMg:5,
+    terps:['Myrcene','Limonene'],  brand:'Kiva',   effect:'Energize', genetics:'Cherry AK × Sour Diesel',
+    lineage:['AK-47','Sour Diesel'],
+    desc:'Bright cherry-citrus gummies with a clean cerebral onset. Perfect for daytime errands and active afternoons.' },
+  { id:2,  name:'Citrus Blast Gummies',  sub:'Sativa · Uplift',    cat:'edibles', strain:'sativa', price:13, thcMg:20,  cbdMg:0,
+    terps:['Limonene','Terpinolene'], brand:'Wana', effect:'Uplift', genetics:'Tangie × Jack Herer',
+    lineage:['Tangie','Jack Herer'],
+    desc:'Sun-drenched citrus burst layered over a functional sativa heritage. Great for creative work.' },
+  { id:3,  name:'Sunny Day Chews',       sub:'Sativa · Focus',     cat:'edibles', strain:'sativa', price:14, thcMg:25,  cbdMg:5,
+    terps:['Limonene','Pinene'],    brand:'Kanha',  effect:'Focus',   genetics:'Lemon Haze × Durban',
+    lineage:['Lemon Haze','Durban Poison'],
+    desc:'Clean lemon-pine clarity from a legendary Durban lineage. Ideal for productivity sessions.' },
+  { id:4,  name:'Green Apple Gummies',   sub:'Sativa · Energize',  cat:'edibles', strain:'sativa', price:12, thcMg:20,  cbdMg:0,
+    terps:['Limonene','Citrus'],    brand:'Nebula', effect:'Energize',genetics:'Apple Fritter × Trainwreck',
+    lineage:['Apple Fritter','Trainwreck'],
+    desc:'Tart green apple pop with a focused, electric high. A fan-favourite morning pick-me-up.' },
+  { id:5,  name:'Lemon Spark Dreams',    sub:'Sativa · Creative',  cat:'edibles', strain:'sativa', price:15, thcMg:30,  cbdMg:0,
+    terps:['Terpinolene','Limonene'], brand:'Wyld', effect:'Create', genetics:'Lemon Skunk × Super Silver Haze',
+    lineage:['Lemon Skunk','Super Silver Haze'],
+    desc:'Dreamy lemon haze energy for artists, writers, and wanderers seeking inspiration.' },
+
+  // Hybrid branch — balanced, social, euphoric
+  { id:6,  name:'Balanced Fruit Gums',   sub:'Hybrid · Balance',   cat:'edibles', strain:'hybrid', price:28, thcMg:100, cbdMg:100,
+    terps:['Myrcene','Caryophyllene'], brand:'Kiva',effect:'Balance',genetics:'Blue Dream × Cannatonic',
+    lineage:['Blue Dream','Cannatonic'],
+    desc:'Perfect 1:1 THC:CBD ratio delivering calm clarity without sedation. The everyday balance formula.' },
+  { id:7,  name:'Peach Party Gummies',   sub:'Hybrid · Social',    cat:'edibles', strain:'hybrid', price:14, thcMg:25,  cbdMg:5,
+    terps:['Myrcene','Ocimene'],    brand:'Wana',   effect:'Social',  genetics:'Peach Ringz × Gelato',
+    lineage:['Peach Ringz','Gelato 41'],
+    desc:'Juicy sun-ripened peach sweetness with a warm, sociable body ease perfect for gatherings.' },
+  { id:8,  name:'Blackberry Dreams',     sub:'Hybrid · Relax',     cat:'edibles', strain:'hybrid', price:15, thcMg:25,  cbdMg:5,
+    terps:['Caryophyllene','Linalool'], brand:'Kanha',effect:'Relax',genetics:'Blackberry Kush × Blue Dream',
+    lineage:['Blackberry Kush','Blue Dream'],
+    desc:'Rich berry sweetness transitioning to gentle body relaxation. Late afternoon delight.' },
+  { id:9,  name:'Calm & Chill Drops',    sub:'Hybrid · Decompress',cat:'edibles', strain:'hybrid', price:22, thcMg:50,  cbdMg:50,
+    terps:['Linalool','Myrcene'],   brand:'Wyld',   effect:'Decompress',genetics:'Purple Punch × ACDC',
+    lineage:['Purple Punch','ACDC'],
+    desc:'Equal THC/CBD blend for winding down without full sedation. Evening transition formula.' },
+  { id:10, name:'Mango Sunrise Chews',   sub:'Hybrid · Euphoric',  cat:'edibles', strain:'hybrid', price:16, thcMg:30,  cbdMg:0,
+    terps:['Myrcene','Ocimene','Limonene'], brand:'Plus', effect:'Euphoria',genetics:'Mango Kush × Pineapple Express',
+    lineage:['Mango Kush','Pineapple Express'],
+    desc:'Tropical mango burst with an uplifting euphoric wave. The vacation in a gummy.' },
+
+  // Indica branch — calming, sleep, pain relief
+  { id:11, name:'Midnight Berry Gummies',sub:'Indica · Sleep',      cat:'edibles', strain:'indica', price:32, thcMg:100, cbdMg:10,
+    terps:['Myrcene','Linalool'],   brand:'Kiva',   effect:'Sleep',   genetics:'Granddaddy Purple × Blueberry',
+    lineage:['Granddaddy Purple','Blueberry'],
+    desc:'Deep purple-berry sedation for full-body sleep support. The night-time standard.' },
+  { id:12, name:'Velvet Sleep Gummies',  sub:'Indica · Sedating',  cat:'edibles', strain:'indica', price:14, thcMg:20,  cbdMg:0,
+    terps:['Myrcene','Caryophyllene'], brand:'CloudRoot',effect:'Sleep',genetics:'Zkittlez × Kosher Kush',
+    lineage:['Zkittlez','Kosher Kush'],
+    desc:'Velvety smooth sedation from live-rosin infused gummies. Premium nighttime relief.' },
+  { id:13, name:'Sleepy Time Bites',     sub:'Indica · Nighttime', cat:'edibles', strain:'indica', price:11, thcMg:20,  cbdMg:0,
+    terps:['Linalool','Terpineol'], brand:'Wyld',   effect:'Sleep',   genetics:'Northern Lights × Lavender',
+    lineage:['Northern Lights','Lavender'],
+    desc:'Classic indica nightcap with soothing floral lavender notes. Gentle and effective.' },
+  { id:14, name:'Clementine Relief',     sub:'Indica · Pain',      cat:'edibles', strain:'indica', price:75, thcMg:300, cbdMg:5,
+    terps:['Caryophyllene','Humulene'], brand:'Select',effect:'Relief',genetics:'Clementine × Purple Hindu Kush',
+    lineage:['Clementine','Hindu Kush'],
+    desc:'High-potency relief drops for chronic discomfort. Citrus-forward with powerful body effects.' },
+  { id:15, name:'Midnight Mango Gummies',sub:'Indica · Relaxing',  cat:'edibles', strain:'indica', price:14, thcMg:25,  cbdMg:0,
+    terps:['Myrcene','Caryophyllene'], brand:'Wana', effect:'Relax', genetics:'Mango Kush × GDP',
+    lineage:['Mango Kush','Granddaddy Purple'],
+    desc:'Exotic mango warmth settling into full-body ease. A tropical twilight experience.' },
+
+  // ── FLOWER ─────────────────────────────────────────────────
+  { id:16, name:'Girl Scout Cookies',    sub:'Hybrid · Euphoric',  cat:'flower',  strain:'hybrid', price:45, thcMg:280, cbdMg:1,
+    terps:['Caryophyllene','Limonene','Humulene'], brand:'Cookies', effect:'Euphoria',
+    genetics:'OG Kush × Durban Poison', lineage:['OG Kush','Durban Poison'],
+    desc:'Iconic sweet, earthy hybrid delivering full-body euphoria. One of the most celebrated crosses ever bred.' },
+  { id:17, name:'Blue Dream',            sub:'Hybrid · Balanced',  cat:'flower',  strain:'hybrid', price:38, thcMg:210, cbdMg:2,
+    terps:['Myrcene','Pinene','Caryophyllene'], brand:'Haze', effect:'Balance',
+    genetics:'Blueberry × Haze',    lineage:['Blueberry','Haze'],
+    desc:'Pacific coast staple delivering gentle cerebral invigoration with a full-body relaxation.' },
+  { id:18, name:'Gelato 41',             sub:'Hybrid · Creative',  cat:'flower',  strain:'hybrid', price:52, thcMg:250, cbdMg:1,
+    terps:['Limonene','Caryophyllene','Linalool'], brand:'Sherbinski', effect:'Create',
+    genetics:'Sunset Sherbet × Thin Mint GSC', lineage:['Sunset Sherbet','GSC'],
+    desc:'Dessert-like aroma meets potent long-lasting cerebral rush. A cornerstone of modern cannabis.' },
+  { id:19, name:'Jack Herer',            sub:'Sativa · Focus',     cat:'flower',  strain:'sativa', price:42, thcMg:220, cbdMg:0,
+    terps:['Terpinolene','Pinene','Ocimene'], brand:'Sensi', effect:'Focus',
+    genetics:'Haze × NL#5 × Shiva Skunk', lineage:['Haze','Northern Lights #5','Shiva Skunk'],
+    desc:'The legend of sativas — piney, spicy uplift for creative and focused minds everywhere.' },
+  { id:20, name:'OG Kush',               sub:'Indica-Hybrid · Relax', cat:'flower', strain:'indica', price:48, thcMg:260, cbdMg:1,
+    terps:['Myrcene','Limonene','Caryophyllene'], brand:'Top Shelf', effect:'Relax',
+    genetics:'Chemdawg × Hindu Kush',lineage:['Chemdawg','Hindu Kush'],
+    desc:'West Coast classic — earthy pine and lemon with profound heavy-body relaxation.' },
+
+  // ── VAPES ──────────────────────────────────────────────────
+  { id:21, name:'Durban Poison Cart',    sub:'Sativa · Energize',  cat:'vapes',   strain:'sativa', price:35, thcMg:800, cbdMg:5,
+    terps:['Terpinolene','Ocimene'], brand:'Bloom', effect:'Energize',
+    genetics:'South African Landrace', lineage:['Durban Poison'],
+    desc:'Pure South African sativa — licorice and anise with a clear electric buzz that lasts for hours.' },
+  { id:22, name:'Wedding Cake Pod',      sub:'Hybrid · Euphoric',  cat:'vapes',   strain:'hybrid', price:42, thcMg:850, cbdMg:2,
+    terps:['Caryophyllene','Limonene'], brand:'Select', effect:'Euphoria',
+    genetics:'Triangle Kush × Animal Mints', lineage:['Triangle Kush','Animal Mints'],
+    desc:'Rich vanilla and tangy pepper on the exhale. Full-body euphoria from a potent modern hybrid.' },
+  { id:23, name:'Northern Lights Cart',  sub:'Indica · Sleep',     cat:'vapes',   strain:'indica', price:30, thcMg:820, cbdMg:1,
+    terps:['Myrcene','Linalool'],    brand:'Rove',   effect:'Sleep',
+    genetics:'Afghani × Thai',       lineage:['Afghani','Thai'],
+    desc:'Musky, sweet indica classic producing body melt and restful sleep. The all-time nighttime vape.' },
+
+  // ── CONCENTRATES ────────────────────────────────────────────
+  { id:24, name:'Strawberry Cough Resin',sub:'Sativa · Uplift',    cat:'concentrates', strain:'sativa', price:55, thcMg:780, cbdMg:3,
+    terps:['Myrcene','Caryophyllene','Limonene'], brand:'Jetty', effect:'Uplift',
+    genetics:'Haze × Strawberry Fields', lineage:['Haze','Strawberry Fields'],
+    desc:'Vivid strawberry essence preserved through live resin extraction. Bright, uplifting, and aromatic.' },
+  { id:25, name:'Pineapple OG Badder',   sub:'Hybrid · Euphoric',  cat:'concentrates', strain:'hybrid', price:60, thcMg:820, cbdMg:1,
+    terps:['Limonene','Myrcene','Pinene'], brand:'Raw Garden', effect:'Euphoria',
+    genetics:'Pineapple × OG Kush',  lineage:['Pineapple','OG Kush'],
+    desc:'Tropical pineapple burst in a creamy workable badder consistency. Rich terpene profile.' },
+
+  // ── TINCTURES ───────────────────────────────────────────────
+  { id:26, name:'1:1 Rest Formula',      sub:'Hybrid · Sleep Support',cat:'tinctures',strain:'hybrid', price:40, thcMg:300, cbdMg:300,
+    terps:['Linalool','Myrcene'],   brand:'Papa & Barkley', effect:'Sleep',
+    genetics:'Balanced Extract Blend', lineage:['Broad-spectrum Hemp','OG Kush'],
+    desc:'Sublingual drops for nighttime recovery. Balanced cannabinoids for deep rest without grogginess.' },
+  { id:27, name:'Sativa Rise Drops',     sub:'Sativa · AM Boost',  cat:'tinctures', strain:'sativa', price:36, thcMg:250, cbdMg:50,
+    terps:['Limonene','Pinene'],    brand:'Dosist', effect:'Energize',
+    genetics:'High-CBD Sativa Blend', lineage:['ACDC','Jack Herer'],
+    desc:'Morning formula to sharpen focus and elevate mood. Microdose-friendly with a balanced CBD offset.' },
+
+  // ── TOPICALS ────────────────────────────────────────────────
+  { id:28, name:'CBD Relief Balm',       sub:'CBD · Anti-inflammatory', cat:'topicals', strain:'hybrid', price:28, thcMg:0, cbdMg:500,
+    terps:['Caryophyllene','Menthol'], brand:'Lord Jones', effect:'Relief',
+    genetics:'Hemp Extract',         lineage:['Hemp CBD'],
+    desc:'Cooling menthol balm with high-potency CBD for targeted localised relief. Non-psychoactive.' },
+];
+
+// ═══════════════════════════════════════════════════════════════
+//  LANE CONFIG — phyletic branches
+// ═══════════════════════════════════════════════════════════════
+const LANE = {
+  sativa: { color:'#5fff80', rgb:'95,255,128',  xFrac:-.36, yFrac:-.14 },
+  hybrid: { color:'#00e5ff', rgb:'0,229,255',   xFrac: .00, yFrac: .13 },
+  indica: { color:'#b06fff', rgb:'176,111,255', xFrac: .36, yFrac:-.10 },
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════
+let state = {
+  cat:      'edibles',
+  strain:   'all',
+  sort:     'price_asc',
+  thcMax:   100000,       // in mg
+  offset:   0,            // float, current tunnel position
+  paused:   false,
+  selId:    null,
+  speed:    0.28,         // cards/second auto-scroll
+  dragging: false,
+  dragStartX: 0,
+  dragOffset:  0,
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  DERIVED DATA
+// ═══════════════════════════════════════════════════════════════
+function getProducts() {
+  return PRODUCTS
+    .filter(p => p.cat === state.cat)
+    .filter(p => state.strain === 'all' || p.strain === state.strain)
+    .filter(p => p.thcMg <= state.thcMax)
+    .sort((a, b) => {
+      switch (state.sort) {
+        case 'price_asc':  return a.price - b.price;
+        case 'price_desc': return b.price - a.price;
+        case 'thc_desc':   return b.thcMg - a.thcMg;
+        case 'terpene':    return a.terps[0].localeCompare(b.terps[0]);
+        case 'name':       return a.name.localeCompare(b.name);
+        default:           return 0;
+      }
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  BACKGROUND CANVAS — tunnel rings + particles
+// ═══════════════════════════════════════════════════════════════
+const bgCanvas = document.getElementById('bg-canvas');
+const bgCtx    = bgCanvas.getContext('2d');
+let   sparks   = [];
+let   bgTime   = 0;
+
+function resizeBg() {
+  const s = document.getElementById('stage');
+  bgCanvas.width  = s.clientWidth;
+  bgCanvas.height = s.clientHeight;
+}
+
+function spawnSpark() {
+  const W = bgCanvas.width, H = bgCanvas.height;
+  const colors = ['#5fff80','#00e5ff','#b06fff','#ffd060'];
+  sparks.push({
+    x: Math.random() * W,
+    y: H * (.5 + Math.random() * .5),
+    r: Math.random() * 1.6 + .4,
+    c: colors[Math.floor(Math.random() * colors.length)],
+    vx: (Math.random() - .5) * 22,
+    vy: -(Math.random() * 1.4 + .5),
+    life: 1,
+    decay: Math.random() * .006 + .003,
+  });
+}
+
+function drawBg(dt) {
+  const W = bgCanvas.width, H = bgCanvas.height;
+  bgCtx.clearRect(0, 0, W, H);
+
+  const cx = W / 2, cy = H * .48;
+
+  // nebula glow — center
+  const nb = bgCtx.createRadialGradient(cx, cy, 0, cx, cy, W * .45);
+  nb.addColorStop(0, 'rgba(0,30,90,.18)');
+  nb.addColorStop(1, 'transparent');
+  bgCtx.fillStyle = nb;
+  bgCtx.fillRect(0, 0, W, H);
+
+  // convergent tunnel rings
+  const ringCount = 14;
+  for (let i = ringCount; i >= 0; i--) {
+    const t = i / ringCount;
+    const rx = W * .55 * t;
+    const ry = H * .50 * t;
+    const hue = (bgTime * 18 + t * 220) % 360;
+    const alpha = .04 + t * .05;
+    bgCtx.beginPath();
+    bgCtx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+    bgCtx.strokeStyle = `hsla(${hue},70%,60%,${alpha})`;
+    bgCtx.lineWidth = t < .25 ? .8 : 1.2;
+    bgCtx.stroke();
+  }
+
+  // 4 rail lines converging to vanishing point
+  const rails = [-.48, -.18, .18, .48];
+  rails.forEach((xf, i) => {
+    bgCtx.beginPath();
+    bgCtx.moveTo(cx + xf * W, H);
+    bgCtx.lineTo(cx, cy - H * .04);
+    bgCtx.strokeStyle = `rgba(0,200,255,${i === 0 || i === 3 ? .07 : .04})`;
+    bgCtx.lineWidth = i === 0 || i === 3 ? 1.2 : .6;
+    bgCtx.stroke();
+  });
+
+  // sparks
+  if (!state.paused && Math.random() < .08) spawnSpark();
+  for (let i = sparks.length - 1; i >= 0; i--) {
+    const s = sparks[i];
+    s.x += s.vx * dt * (state.paused ? .1 : 1);
+    s.y += s.vy * 60 * dt * (state.paused ? .1 : 1);
+    s.life -= s.decay * (state.paused ? .2 : 1);
+    if (s.life <= 0) { sparks.splice(i, 1); continue; }
+    bgCtx.beginPath();
+    bgCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    bgCtx.fillStyle = s.c;
+    bgCtx.globalAlpha = s.life * .7;
+    bgCtx.fill();
+    bgCtx.globalAlpha = 1;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TUNNEL LAYOUT — 3-D perspective placement
+// ═══════════════════════════════════════════════════════════════
+//  Products are spread along a virtual z-axis.
+//  We interleave by strain to form three phyletic branches.
+//  The camera (offset) moves along this axis, revealing cards.
+//
+//  Depth = 0 is the vanishing point (far), 1 is nearest.
+//  Cards beyond the visible window are culled.
+
+const VISIBLE_SPAN = 4.8; // how many cards deep are shown
+
+function buildTunnelOrder(prods) {
+  // group by strain, then interleave so all three branches run in parallel
+  const groups = { sativa: [], hybrid: [], indica: [] };
+  prods.forEach(p => { if (groups[p.strain]) groups[p.strain].push(p); });
+  const maxLen = Math.max(...Object.values(groups).map(a => a.length), 0);
+  const order = [];
+  for (let i = 0; i < maxLen; i++) {
+    ['sativa', 'hybrid', 'indica'].forEach(s => {
+      if (groups[s][i]) order.push({ ...groups[s][i], tIdx: order.length });
+    });
+  }
+  return order;
+}
+
+function cardLayout(tIdx, totalCards, offset, W, H) {
+  const cx = W / 2, cy = H * .48;
+
+  // relative position from camera
+  let rel = tIdx - offset;
+  // wrap so tunnel feels cyclic when there are enough products
+  if (totalCards >= 6) {
+    while (rel > totalCards / 2)  rel -= totalCards;
+    while (rel < -totalCards / 2) rel += totalCards;
+  }
+
+  if (Math.abs(rel) > VISIBLE_SPAN) return null;
+
+  // depth: rel=0 → nearest (depth=1), |rel|=VISIBLE_SPAN → far (depth→0)
+  const depth = Math.max(0, 1 - Math.abs(rel) / VISIBLE_SPAN);
+  const eased = depth * depth; // ease to give perspective compression at far end
+
+  return { rel, depth, eased, cx, cy };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CARD RENDERING
+// ═══════════════════════════════════════════════════════════════
+const cardLayer = document.getElementById('card-layer');
+const branchSvg = document.getElementById('branch-svg');
+let   renderedCards = []; // {id, el, x, y, depth, strain}
+
+function renderTunnel() {
+  const prods   = getProducts();
+  const ordered = buildTunnelOrder(prods);
+  const total   = ordered.length;
+  const stage   = document.getElementById('stage');
+  const W = stage.clientWidth, H = stage.clientHeight;
+
+  // clear old cards
+  cardLayer.innerHTML = '';
+  branchSvg.innerHTML = '';
+  renderedCards = [];
+
+  if (!total) {
+    showEmpty();
+    return;
+  }
+
+  const CARD_BASE = 158;   // px at depth=1
+  const CARD_MIN  = 54;    // px at depth≈0
+  const prevByStrain = {};
+
+  // sort by depth so far cards are painted first (painter's algorithm)
+  const toRender = [];
+  ordered.forEach((prod, i) => {
+    const layout = cardLayout(i, total, state.offset % Math.max(total, 1), W, H);
+    if (!layout) return;
+    toRender.push({ prod, i, layout });
+  });
+  toRender.sort((a, b) => a.layout.depth - b.layout.depth);
+
+  toRender.forEach(({ prod, layout }) => {
+    const { rel, depth, eased, cx, cy } = layout;
+    const lane = LANE[prod.strain] || LANE.hybrid;
+
+    // 3-D positioning: items closer to camera spread to their lane
+    const xSpread = lane.xFrac * W * eased * .68;
+    const ySpread = lane.yFrac * H * eased * .42;
+    const parallax = rel * H * .042 * (1 - depth * .5);
+    const px = cx + xSpread;
+    const py = cy + ySpread + parallax;
+
+    const cardW = CARD_MIN + (CARD_BASE - CARD_MIN) * eased;
+    const cardH = cardW * 1.14; // hex height
+    const opacity = .18 + depth * .82;
+    const z = Math.round(depth * 100);
+    const isSel = state.selId === prod.id;
+
+    // create card element
+    const card = document.createElement('div');
+    card.className = 'pcard' + (isSel ? ' sel' : '');
+    card.dataset.id = prod.id;
+    card.style.cssText = `
+      left: ${px - cardW / 2}px;
+      top:  ${py - cardH / 2}px;
+      width: ${cardW}px;
+      height: ${cardH}px;
+      opacity: ${opacity};
+      z-index: ${z};
+      --lane-color: ${lane.color};
+    `;
+
+    // scale font with card size
+    const fs = (cardW / CARD_BASE);
+    const thcLabel = prod.thcMg >= 100
+      ? (prod.thcMg / 10).toFixed(0) + 'mg'
+      : prod.thcMg + 'mg';
+
+    card.innerHTML = `
+      <div class="pcard-shell" style="width:100%;height:100%;background:rgba(0,${Math.round(12*eased)},${Math.round(32*eased)},.92)">
+        ${isSel ? `<div class="sel-ring" style="width:${cardW*1.3}px;height:${cardW*1.3}px;margin-left:-${cardW*.15}px;margin-top:-${cardH*.08}px"></div>` : ''}
+        <div class="pcard-body" style="font-size:${fs}em">
+          <div class="pc-strain-dot"></div>
+          <div class="pc-effect">${prod.effect}</div>
+          <div class="pc-name">${prod.name}</div>
+          <div class="pc-brand">${prod.brand}</div>
+          <div class="pc-price">$${prod.price}</div>
+          <div class="pc-thc">${thcLabel} THC</div>
+          <div class="pc-terps">
+            ${prod.terps.slice(0,3).map(()=>`<div class="pc-terp-dot"></div>`).join('')}
+          </div>
+        </div>
+      </div>`;
+
+    card.addEventListener('click', () => selectProduct(prod.id));
+    cardLayer.appendChild(card);
+
+    renderedCards.push({ id: prod.id, prod, el: card, x: px, y: py, depth, strain: prod.strain });
+
+    // branch connection line
+    if (prevByStrain[prod.strain] && depth > .15 && prevByStrain[prod.strain].depth > .15) {
+      const prev = prevByStrain[prod.strain];
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      const mx = (prev.x + px) / 2;
+      const my = (prev.y + py) / 2 - 18 * eased;
+      line.setAttribute('d', `M${prev.x},${prev.y} Q${mx},${my} ${px},${py}`);
+      line.setAttribute('stroke', lane.color);
+      line.setAttribute('stroke-width', String(eased * 1.5));
+      line.setAttribute('stroke-opacity', String(Math.min(depth, prevByStrain[prod.strain].depth) * .35));
+      line.setAttribute('fill', 'none');
+      line.setAttribute('stroke-dasharray', '3 7');
+      branchSvg.appendChild(line);
+    }
+    prevByStrain[prod.strain] = { x: px, y: py, depth };
+  });
+
+  // lane labels — show near the nearest card of each strain
+  Object.entries(LANE).forEach(([strain, cfg]) => {
+    const nearest = renderedCards
+      .filter(c => c.strain === strain)
+      .sort((a, b) => b.depth - a.depth)[0];
+    if (!nearest || nearest.depth < .5) return;
+    const lbl = document.createElement('div');
+    lbl.className = 'lane-tag show';
+    lbl.style.cssText = `left:${nearest.x - 40}px;top:${nearest.y - nearest.el.clientHeight/2 - 24}px;color:${cfg.color};text-shadow:0 0 12px ${cfg.color};border:1px solid ${cfg.color}44;background:rgba(0,5,15,.7)`;
+    lbl.textContent = strain.toUpperCase();
+    cardLayer.appendChild(lbl);
+  });
+
+  updateMiniMap(ordered, total, W);
+  updateHereLabel(ordered, total);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MINI MAP
+// ═══════════════════════════════════════════════════════════════
+function updateMiniMap(ordered, total, stageW) {
+  const mm = document.getElementById('mini-map');
+  mm.querySelectorAll('.mm-node').forEach(e => e.remove());
+  const W = mm.clientWidth, H = mm.clientHeight;
+
+  ordered.forEach((p, i) => {
+    const lane = LANE[p.strain] || LANE.hybrid;
+    const x = total > 1 ? (i / (total - 1)) * W : W / 2;
+    const y = H / 2 + lane.xFrac * H * .5;
+    const node = document.createElement('div');
+    node.className = 'mm-node';
+    node.style.cssText = `width:5px;height:5px;background:${lane.color};left:${x-2.5}px;top:${y-2.5}px;opacity:${state.selId===p.id?1:.55}`;
+    mm.appendChild(node);
+  });
+
+  // cursor
+  const cursor = document.getElementById('mm-cursor');
+  const frac = total > 1 ? (state.offset % total) / (total - 1) : .5;
+  cursor.style.left = Math.max(0, Math.min(W - 2, frac * W)) + 'px';
+}
+
+function updateHereLabel(ordered, total) {
+  if (!total) return;
+  const idx = Math.round(state.offset) % total;
+  const p = ordered[idx];
+  if (!p) return;
+  document.getElementById('here-price').textContent  = p.price;
+  document.getElementById('price-now').textContent   = p.price;
+  document.getElementById('loc-label').textContent   = state.cat.charAt(0).toUpperCase() + state.cat.slice(1);
+  document.getElementById('you-are-here').style.display = 'block';
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PRODUCT DETAIL PANEL
+// ═══════════════════════════════════════════════════════════════
+function showEmpty() {
+  document.getElementById('detail-empty').style.display = 'flex';
+  document.getElementById('detail-fill').style.display  = 'none';
+}
+
+function selectProduct(id) {
+  state.selId = id;
+  const p = PRODUCTS.find(x => x.id === id);
+  if (!p) return;
+
+  const lane = LANE[p.strain] || LANE.hybrid;
+  const thcLabel = p.thcMg >= 100 ? (p.thcMg/10).toFixed(0)+'mg' : p.thcMg+'mg';
+  const cbdLabel = p.cbdMg > 0 ? (p.cbdMg >= 100 ? (p.cbdMg/10).toFixed(0)+'mg' : p.cbdMg+'mg') : 'None';
+
+  document.getElementById('detail-empty').style.display = 'none';
+  const fill = document.getElementById('detail-fill');
+  fill.style.display = 'block';
+  fill.style.setProperty('--lane-color', lane.color);
+  fill.style.setProperty('--badge-rgb',  lane.rgb);
+  fill.innerHTML = `
+    <div class="det-strain-bar"></div>
+    <div class="det-name">${p.name}</div>
+    <div class="det-sub">${p.sub}</div>
+    <div class="det-badges">
+      <span class="det-badge">${p.strain.toUpperCase()}</span>
+      <span class="det-badge">${p.effect.toUpperCase()}</span>
+      <span class="det-badge">${p.brand.toUpperCase()}</span>
+    </div>
+    <div class="det-price">$${p.price}</div>
+    <div class="det-price-sub">${thcLabel} THC · ${cbdLabel} CBD</div>
+    <div class="det-stats">
+      <div class="det-stat"><div class="det-stat-label">THC</div><div class="det-stat-val">${thcLabel}</div></div>
+      <div class="det-stat"><div class="det-stat-label">CBD</div><div class="det-stat-val">${cbdLabel}</div></div>
+      <div class="det-stat"><div class="det-stat-label">Effect</div><div class="det-stat-val">${p.effect}</div></div>
+      <div class="det-stat"><div class="det-stat-label">Strain</div><div class="det-stat-val" style="color:${lane.color}">${p.strain.charAt(0).toUpperCase()+p.strain.slice(1)}</div></div>
+    </div>
+    <p class="det-desc">${p.desc}</p>
+    <div class="det-section-h">Terpenes</div>
+    <div class="terp-list">${p.terps.map(t=>`<span class="terp-chip">${t}</span>`).join('')}</div>
+    <div class="det-section-h">Phyletic Lineage</div>
+    <div class="phylo-box">
+      ${p.lineage.map((l,i) => `<div class="phylo-entry"><span class="leaf">${'&nbsp;'.repeat(i*3)}${i>0?'└─':''}</span>${l}</div>`).join('')}
+      <div class="phylo-entry"><span class="leaf">${'&nbsp;'.repeat(p.lineage.length*3)}└─</span><span class="phylo-final">${p.name}</span></div>
+    </div>
+    <button class="det-action primary">Add to Cart — $${p.price}</button>
+    <button class="det-action ghost">☆ Save to Favourites</button>
+  `;
+  renderTunnel(); // re-render to show selection ring
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+function step(delta) {
+  state.offset += delta;
+  renderTunnel();
+}
+
+function jump(delta) {
+  state.offset += delta;
+  renderTunnel();
+}
+
+function seekTo(pct) {
+  const prods = getProducts();
+  if (!prods.length) return;
+  state.offset = (pct / 100) * (prods.length - 1);
+  renderTunnel();
+}
+
+function togglePause() {
+  state.paused = !state.paused;
+  document.getElementById('play-btn').textContent = state.paused ? '▶' : '⏸';
+  document.getElementById('flow-label').textContent = state.paused ? 'Paused' : 'Auto';
+  document.getElementById('pause-overlay').classList.toggle('show', state.paused);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  FILTERS
+// ═══════════════════════════════════════════════════════════════
+function setCategory(btn) {
+  state.cat    = btn.dataset.cat;
+  state.offset = 0;
+  state.selId  = null;
+  document.querySelectorAll('.cat-pill').forEach(b => b.classList.toggle('active', b === btn));
+  showEmpty();
+  renderTunnel();
+}
+
+function setStrain(row) {
+  state.strain = row.dataset.strain;
+  document.querySelectorAll('[data-strain]').forEach(r => r.classList.toggle('active', r === row));
+  renderTunnel();
+}
+
+function setSort(row) {
+  state.sort = row.dataset.sort;
+  document.querySelectorAll('[data-sort]').forEach(r => r.classList.toggle('active', r === row));
+  renderTunnel();
+}
+
+function setTHC(input) {
+  state.thcMax = parseInt(input.value) * 10;
+  document.getElementById('thc-val').textContent = input.value;
+  renderTunnel();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  DRAG-TO-SCRUB
+// ═══════════════════════════════════════════════════════════════
+const stage = document.getElementById('stage');
+stage.addEventListener('mousedown', e => {
+  if (e.target.closest('.pcard')) return; // let clicks on cards through
+  state.dragging   = true;
+  state.dragStartX = e.clientX;
+  state.dragOffset = state.offset;
+});
+window.addEventListener('mousemove', e => {
+  if (!state.dragging) return;
+  const dx = (e.clientX - state.dragStartX) / 90;
+  state.offset = state.dragOffset - dx;
+  renderTunnel();
+});
+window.addEventListener('mouseup', () => { state.dragging = false; });
+
+// touch
+stage.addEventListener('touchstart', e => {
+  state.dragging   = true;
+  state.dragStartX = e.touches[0].clientX;
+  state.dragOffset = state.offset;
+}, { passive: true });
+stage.addEventListener('touchmove', e => {
+  if (!state.dragging) return;
+  const dx = (e.touches[0].clientX - state.dragStartX) / 90;
+  state.offset = state.dragOffset - dx;
+  renderTunnel();
+}, { passive: true });
+stage.addEventListener('touchend', () => { state.dragging = false; });
+
+// wheel to fine-scrub
+stage.addEventListener('wheel', e => {
+  state.offset += e.deltaY * .012;
+  renderTunnel();
+  e.preventDefault();
+}, { passive: false });
+
+// ═══════════════════════════════════════════════════════════════
+//  KEYBOARD
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  switch (e.key) {
+    case 'ArrowRight': case 'ArrowDown':  step(1);        e.preventDefault(); break;
+    case 'ArrowLeft':  case 'ArrowUp':    step(-1);       e.preventDefault(); break;
+    case 'PageDown':                      jump(3);        e.preventDefault(); break;
+    case 'PageUp':                        jump(-3);       e.preventDefault(); break;
+    case ' ':                             togglePause();  e.preventDefault(); break;
+    case 'Escape':
+      state.selId = null;
+      showEmpty();
+      renderTunnel();
+      break;
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  MAIN ANIMATION LOOP
+// ═══════════════════════════════════════════════════════════════
+let lastTs = null;
+let lastRenderOffset = -9999;
+const RENDER_THRESHOLD = 0.01;
+
+function loop(ts) {
+  if (lastTs === null) lastTs = ts;
+  const dt = Math.min((ts - lastTs) / 1000, .1);
+  lastTs = ts;
+  bgTime += dt;
+
+  if (!state.paused && !state.dragging) {
+    state.offset += state.speed * dt;
+    const prods = getProducts();
+    if (prods.length > 0) state.offset %= prods.length;
+
+    // throttle card re-render to when position changes enough
+    if (Math.abs(state.offset - lastRenderOffset) > RENDER_THRESHOLD) {
+      renderTunnel();
+      lastRenderOffset = state.offset;
+    }
+  }
+
+  drawBg(dt);
+  requestAnimationFrame(loop);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  RESIZE
+// ═══════════════════════════════════════════════════════════════
+const resizeObserver = new ResizeObserver(() => {
+  resizeBg();
+  renderTunnel();
+});
+resizeObserver.observe(document.getElementById('stage'));
+
+// ═══════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════
+resizeBg();
+showEmpty();
+renderTunnel();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
