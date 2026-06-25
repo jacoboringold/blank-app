@@ -1,0 +1,5 @@
+import * as THREE from 'three';
+export class CameraController { constructor(camera, dom){ this.camera=camera; this.dom=dom; this.target=new THREE.Vector3(); this.desired=new THREE.Vector3(0,18,92); this.drag=false; this.theta=0; this.phi=.2; this.radius=96; this.bind(); }
+ bind(){ this.dom.addEventListener('pointerdown',e=>{this.drag=true; this.dom.setPointerCapture(e.pointerId)}); this.dom.addEventListener('pointerup',()=>this.drag=false); this.dom.addEventListener('pointermove',e=>{ if(this.drag){ this.theta-=e.movementX*.004; this.phi=Math.max(-.8,Math.min(.8,this.phi-e.movementY*.004)); }}); this.dom.addEventListener('wheel',e=>{ this.radius=Math.max(22,Math.min(165,this.radius+e.deltaY*.04)); }); }
+ flyTo(v){ this.target.copy(v); this.radius=38; }
+ update(dt, elapsed, selectedPos){ if(selectedPos) this.target.lerp(selectedPos,dt*.8); else this.theta += dt*.025; const r=this.radius, y=Math.sin(this.phi)*r+14+Math.sin(elapsed*.2)*3; this.desired.set(Math.sin(this.theta)*r, y, Math.cos(this.theta)*r).add(this.target); this.camera.position.lerp(this.desired,dt*2.2); this.camera.lookAt(this.target); }}

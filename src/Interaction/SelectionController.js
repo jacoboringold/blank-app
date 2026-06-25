@@ -1,0 +1,3 @@
+import * as THREE from 'three';
+export class SelectionController { constructor(renderer, tiles, camera, panel){ this.renderer=renderer; this.tiles=tiles; this.camera=camera; this.panel=panel; this.ray=new THREE.Raycaster(); this.pointer=new THREE.Vector2(); this.selected=null; }
+ bind(){ this.renderer.domElement.addEventListener('click',e=>{ this.pointer.x=e.clientX/innerWidth*2-1; this.pointer.y=-(e.clientY/innerHeight)*2+1; this.ray.setFromCamera(this.pointer,this.camera.camera); const hit=this.ray.intersectObjects(this.tiles.pickables(),false)[0]; this.selected=hit?.object.userData.product || null; if(this.selected){ this.camera.flyTo(this.tiles.getPosition(this.selected.id)); this.panel.show(this.selected); } else this.panel.hide(); }); }}

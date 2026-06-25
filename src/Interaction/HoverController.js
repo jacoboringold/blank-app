@@ -1,0 +1,3 @@
+import * as THREE from 'three';
+export class HoverController { constructor(renderer, tiles, camera){ this.renderer=renderer; this.tiles=tiles; this.camera=camera; this.ray=new THREE.Raycaster(); this.pointer=new THREE.Vector2(); this.current=null; }
+ bind(){ this.renderer.domElement.addEventListener('pointermove',e=>{ this.pointer.x=e.clientX/innerWidth*2-1; this.pointer.y=-(e.clientY/innerHeight)*2+1; this.ray.setFromCamera(this.pointer,this.camera.camera); const hit=this.ray.intersectObjects(this.tiles.pickables(),false)[0]; this.current=hit?.object.userData.product || null; document.body.style.cursor=this.current?'pointer':'default'; }); }}

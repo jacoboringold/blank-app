@@ -1,0 +1,11 @@
+import * as THREE from 'three';
+import { makeTileTexture } from './Tile.js';
+export class TileSystem {
+  constructor(products, graph, layout) { this.products=products; this.graph=graph; this.layout=layout; this.group=new THREE.Group(); this.meshes=new Map(); this.lineGroup=new THREE.Group(); this.group.add(this.lineGroup); this.createTiles(); this.createLines(); }
+  createTiles(){ const geo=new THREE.CircleGeometry(1.45,6); this.products.forEach(p=>{ const tex=new THREE.CanvasTexture(makeTileTexture(p)); tex.anisotropy=8; const mat=new THREE.MeshPhysicalMaterial({map:tex, transparent:true, opacity:.92, roughness:.18, metalness:.15, transmission:.25, emissive:new THREE.Color(0x0abbd3), emissiveIntensity:.1, side:THREE.DoubleSide}); const m=new THREE.Mesh(geo,mat); m.userData.product=p; this.meshes.set(p.id,m); this.group.add(m); }); }
+  createLines(){ this.graph.edges.filter((_,i)=>i%2===0).forEach(e=>{ const mat=new THREE.LineBasicMaterial({color:0x3fdfff, transparent:true, opacity:Math.min(.28,e.weight/25)}); const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),mat); line.userData.edge=e; this.lineGroup.add(line); }); }
+  getPosition(id){ return this.layout.get(id); }
+  update(dt, elapsed, hover, selected, matches){ const dim=matches && matches.size; for(const p of this.products){ const m=this.meshes.get(p.id), pos=this.layout.get(p.id); m.position.copy(pos); m.lookAt(window.__ktCameraPosition || new THREE.Vector3(0,0,90)); const active=hover?.id===p.id || selected?.id===p.id || matches?.has(p.id); const target= selected?.id===p.id ? 2.8 : active ? 2.05 : 1.35; m.scale.lerpScalar(target, dt*5); m.rotation.z = Math.sin(elapsed+p.popularity)*.06; m.material.opacity = dim && !matches.has(p.id) ? .16 : .92; m.material.emissiveIntensity = active ? .85 : .1; }
+    for(const line of this.lineGroup.children){ const {source,target}=line.userData.edge; const a=this.layout.get(source.id), b=this.layout.get(target.id); line.geometry.setFromPoints([a,b]); const lit=selected && (source.id===selected.id || target.id===selected.id); line.material.opacity = lit ? .8 : .12; }}
+  pickables(){ return [...this.meshes.values()]; }
+}

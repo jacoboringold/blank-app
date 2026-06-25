@@ -1,0 +1,2 @@
+export class SearchBar { constructor(root){ this.el=document.createElement('div'); this.el.className='search'; this.el.innerHTML='<span>Kiosk Tunnel</span><input placeholder="Search known products, brands, terpenes…"/><button title="Fullscreen">⛶</button>'; root.append(this.el); this.input=this.el.querySelector('input'); this.el.querySelector('button').onclick=()=>document.documentElement.requestFullscreen?.(); }
+ onInput(fn){ this.input.addEventListener('input',e=>fn(e.target.value)); }}

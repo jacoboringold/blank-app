@@ -1,0 +1,2 @@
+export class SearchController { constructor(products, tiles, camera, bar){ this.products=products; this.tiles=tiles; this.camera=camera; this.bar=bar; this.matches=null; }
+ bind(){ this.bar.onInput(q=>{ const query=q.trim().toLowerCase(); if(!query){ this.matches=null; return; } const found=this.products.filter(p=>[p.brand,p.strain,p.category,p.effect,p.primaryTerpene].join(' ').toLowerCase().includes(query)).slice(0,35); this.matches=new Set(found.map(p=>p.id)); if(found[0]) this.camera.flyTo(this.tiles.getPosition(found[0].id)); }); }}
