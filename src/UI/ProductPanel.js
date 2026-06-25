@@ -1,0 +1,3 @@
+export class ProductPanel { constructor(root){ this.el=document.createElement('aside'); this.el.className='panel'; root.append(this.el); }
+ show(p){ this.el.classList.add('visible'); this.el.innerHTML=`<h2>${p.strain}</h2><h3>${p.brand}</h3><p>${p.category} · ${p.effect} · ${p.primaryTerpene}</p><div class="price">$${p.price}</div><dl><dt>THC</dt><dd>${p.THC}%</dd><dt>CBD</dt><dd>${p.CBD}%</dd><dt>Rating</dt><dd>${p.rating} ★</dd><dt>Inventory</dt><dd>${p.inventoryQuantity}</dd></dl><p class="notes">Flavor: ${p.flavorNotes.join(', ')}. Lineage: ${p.lineage.join(' × ')}.</p>`; }
+ hide(){ this.el.classList.remove('visible'); }}
