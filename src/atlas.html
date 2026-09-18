@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<title>3D Body Atlas</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#141b2e; --panel2:#182036; --border:#2a3555;
+    --text:#e6e9f2; --muted:#93a0c2; --accent:#38bdf8; --accent2:#22d3ee;
+    --good:#4ade80; --bad:#f87171; --warn:#fbbf24;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);
+    overscroll-behavior:none;-webkit-text-size-adjust:100%;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  #app{display:flex;flex-direction:column;height:100vh;height:100dvh;width:100%;overflow:hidden;}
+
+  /* ---- Top bar ---- */
+  #topbar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--panel);
+    border-bottom:1px solid var(--border);flex-wrap:wrap;flex:none;}
+  #topbar h1{font-size:15px;margin:0 10px 0 0;font-weight:700;white-space:nowrap;}
+  .btn{background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:9px;
+    padding:8px 12px;font-size:13px;cursor:pointer;white-space:nowrap;font-family:inherit;}
+  .btn:hover{border-color:var(--accent);color:var(--accent);}
+  .btn.active{background:var(--accent);color:#04121c;border-color:var(--accent);font-weight:600;}
+  .spacer{flex:1;}
+  #score{font-size:13px;color:var(--muted);white-space:nowrap;}
+
+  #main{display:flex;flex:1;min-height:0;position:relative;}
+
+  /* ---- Sidebar ---- */
+  #sidebar{width:280px;min-width:220px;background:var(--panel);border-right:1px solid var(--border);
+    display:flex;flex-direction:column;min-height:0;flex:none;}
+  #search{margin:10px;padding:9px 10px;border-radius:9px;border:1px solid var(--border);
+    background:var(--panel2);color:var(--text);font-size:16px;font-family:inherit;}
+  #search:focus{outline:none;border-color:var(--accent);}
+  #legend{display:flex;flex-wrap:wrap;gap:4px;padding:0 10px 9px;}
+  .chip{font-size:11px;padding:4px 8px;border-radius:99px;border:1px solid var(--border);
+    cursor:pointer;opacity:.45;user-select:none;}
+  .chip.on{opacity:1;}
+  .chip.layer::after{content:" +";opacity:.7;}
+  #regionList{list-style:none;margin:0;padding:0 6px 10px;overflow-y:auto;flex:1;
+    -webkit-overflow-scrolling:touch;}
+  #regionList li{padding:9px 9px;border-radius:9px;font-size:13px;cursor:pointer;margin-bottom:2px;
+    display:flex;align-items:center;gap:8px;color:var(--muted);}
+  #regionList li:hover{background:var(--panel2);color:var(--text);}
+  #regionList li.selected{background:rgba(56,189,248,.15);color:var(--accent);font-weight:600;}
+  #regionList li .dot{width:9px;height:9px;border-radius:50%;flex:none;}
+  #regionList li .idx{color:var(--muted);font-size:11px;width:18px;flex:none;text-align:right;}
+  #regionList li .done{margin-left:auto;font-size:12px;color:var(--good);}
+  #progressWrap{padding:9px 12px;border-top:1px solid var(--border);font-size:11.5px;color:var(--muted);flex:none;}
+  #progressBar{height:5px;border-radius:99px;background:var(--panel2);overflow:hidden;margin-top:5px;}
+  #progressFill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;
+    transition:width .3s;}
+
+  /* ---- Canvas ---- */
+  #canvasWrap{flex:1;position:relative;min-width:0;touch-action:none;}
+  #canvasWrap canvas{display:block;width:100%;height:100%;}
+  #hint{position:absolute;left:12px;bottom:10px;font-size:11px;color:var(--muted);
+    background:rgba(15,23,42,.65);padding:5px 9px;border-radius:8px;pointer-events:none;}
+
+  /* ---- Detail panel ---- */
+  #detail{width:340px;min-width:260px;background:var(--panel);border-left:1px solid var(--border);
+    padding:18px;overflow-y:auto;display:none;flex-direction:column;gap:12px;flex:none;
+    -webkit-overflow-scrolling:touch;}
+  #detail.show{display:flex;}
+  #detailHead{display:flex;align-items:flex-start;gap:10px;}
+  #detailTitle{margin:0;font-size:18px;color:var(--accent);flex:1;line-height:1.25;}
+  #closeDetail{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;
+    line-height:1;padding:0 2px;flex:none;font-family:inherit;}
+  .cat-tag{display:inline-block;font-size:11px;padding:3px 9px;border-radius:99px;
+    background:var(--panel2);border:1px solid var(--border);width:fit-content;}
+  .field label{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;
+    color:var(--muted);margin-bottom:4px;font-weight:600;}
+  .field p{margin:0;font-size:13.5px;line-height:1.55;}
+  .field.watch p{color:#fca5a5;}
+  .field.pearl{background:rgba(251,191,36,.09);border-left:3px solid var(--warn);
+    padding:9px 11px;border-radius:0 8px 8px 0;}
+  .field.pearl p{color:#fde68a;font-size:13px;}
+  #subList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;}
+  #subList li{padding:8px 10px;border-radius:8px;background:var(--panel2);font-size:12.5px;
+    cursor:pointer;border:1px solid transparent;line-height:1.45;}
+  #subList li:hover{border-color:var(--accent);}
+  #subList li.active{border-color:var(--accent);background:rgba(56,189,248,.14);}
+  #subList li b{color:var(--text);display:block;margin-bottom:2px;}
+  #subList li span{color:var(--muted);}
+  #quizThis{background:var(--accent);color:#04121c;border:none;border-radius:9px;padding:11px;
+    font-size:13.5px;font-weight:700;cursor:pointer;width:100%;font-family:inherit;}
+
+  /* ---- Quiz card ---- */
+  #quizCard{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;z-index:8;
+    width:min(520px,calc(100% - 24px));background:var(--panel);border:1px solid var(--accent);
+    border-radius:14px;padding:15px;display:none;flex-direction:column;gap:10px;
+    box-shadow:0 10px 40px rgba(0,0,0,.55);max-height:calc(100% - 28px);overflow-y:auto;}
+  #quizCard.show{display:flex;}
+  #quizMeta{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;}
+  #quizQ{font-size:15px;line-height:1.45;margin:0;font-weight:600;}
+  #quizOpts{display:flex;flex-direction:column;gap:7px;}
+  .opt{text-align:left;background:var(--panel2);color:var(--text);border:1px solid var(--border);
+    border-radius:10px;padding:12px 13px;font-size:13.5px;cursor:pointer;line-height:1.4;
+    font-family:inherit;}
+  .opt:hover:not(:disabled){border-color:var(--accent);}
+  .opt:disabled{cursor:default;}
+  .opt.correct{border-color:var(--good);background:rgba(74,222,128,.16);color:#bbf7d0;}
+  .opt.wrong{border-color:var(--bad);background:rgba(248,113,113,.14);color:#fecaca;}
+  #quizWhy{font-size:12.5px;line-height:1.5;color:var(--muted);margin:0;display:none;}
+  #quizWhy.show{display:block;}
+  #quizNext{background:var(--accent);color:#04121c;border:none;border-radius:9px;padding:11px;
+    font-size:13.5px;font-weight:700;cursor:pointer;display:none;font-family:inherit;}
+  #quizNext.show{display:block;}
+  #quizClose{position:absolute;top:8px;right:11px;background:none;border:none;color:var(--muted);
+    font-size:19px;cursor:pointer;font-family:inherit;line-height:1;}
+
+  /* ---- Phone ---- */
+  @media (max-width:820px){
+    #topbar{gap:6px;padding:7px 10px;padding-top:max(7px,env(safe-area-inset-top));}
+    #topbar h1{font-size:14px;width:100%;margin:0;}
+    .btn{padding:8px 11px;font-size:12.5px;}
+    #score{width:100%;}
+    #sidebar{position:absolute;left:0;top:0;bottom:0;z-index:9;transform:translateX(-100%);
+      transition:transform .22s;box-shadow:6px 0 24px rgba(0,0,0,.5);width:min(88vw,320px);}
+    #sidebar.open{transform:translateX(0);}
+    #detail{position:absolute;right:0;top:0;bottom:0;z-index:10;width:min(92vw,380px);
+      padding:15px;box-shadow:-6px 0 24px rgba(0,0,0,.5);}
+    #hint{font-size:10px;left:8px;bottom:max(8px,env(safe-area-inset-bottom));}
+    #quizCard{bottom:max(10px,env(safe-area-inset-bottom));padding:13px;}
+    #quizQ{font-size:14.5px;}
+  }
+  ::-webkit-scrollbar{width:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <h1>🧍 3D Body Atlas</h1>
+    <button class="btn" id="sidebarToggle">☰ Regions</button>
+    <button class="btn" id="frontBtn">Front</button>
+    <button class="btn" id="backBtn">Back</button>
+    <button class="btn" id="headBtn">Head</button>
+    <button class="btn" id="quizBtn">🧠 Quiz</button>
+    <div class="spacer"></div>
+    <span id="score"></span>
+  </div>
+
+  <div id="main">
+    <div id="sidebar">
+      <input id="search" placeholder="Search regions…" autocomplete="off" />
+      <div id="legend"></div>
+      <ul id="regionList"></ul>
+      <div id="progressWrap">
+        Studied <span id="progressCount">0</span>/<span id="progressTotal">0</span> regions
+        <div id="progressBar"><div id="progressFill"></div></div>
+      </div>
+    </div>
+
+    <div id="canvasWrap">
+      <div id="hint">Drag to rotate · pinch to zoom · tap a glowing marker</div>
+      <div id="quizCard">
+        <button id="quizClose">✕</button>
+        <div id="quizMeta"></div>
+        <p id="quizQ"></p>
+        <div id="quizOpts"></div>
+        <p id="quizWhy"></p>
+        <button id="quizNext">Next question →</button>
+      </div>
+    </div>
+
+    <div id="detail">
+      <div id="detailHead">
+        <h2 id="detailTitle"></h2>
+        <button id="closeDetail">✕</button>
+      </div>
+      <span class="cat-tag" id="detailCat"></span>
+      <div class="field" id="fSub" style="display:none">
+        <label id="subLabel">Structures — tap to locate</label>
+        <ul id="subList"></ul>
+      </div>
+      <div class="field"><label>How to assess</label><p id="dTechnique"></p></div>
+      <div class="field"><label>Normal findings</label><p id="dNormal"></p></div>
+      <div class="field watch"><label>Watch for</label><p id="dWatch"></p></div>
+      <div class="field pearl" id="fPearl"><label>Exam pearl</label><p id="dPearl"></p></div>
+      <button id="quizThis">🧠 Quiz me on this region</button>
+    </div>
+  </div>
+</div>
+
+<!--INJECT:THREE-->
+<!--INJECT:ORBIT-->
+<!--INJECT:DATA-->
+
+<script>
+/* =====================================================================
+   Scene
+===================================================================== */
+const canvasWrap = document.getElementById('canvasWrap');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0f172a);
+
+const camera = new THREE.PerspectiveCamera(40, 1, 0.05, 100);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+canvasWrap.appendChild(renderer.domElement);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.09;
+controls.minDistance = 0.28;
+controls.maxDistance = 6;
+controls.maxPolarAngle = Math.PI*0.93;
+controls.target.set(0,0.95,0);
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.62));
+const key = new THREE.DirectionalLight(0xffffff, 0.85);
+key.position.set(2.5,3.5,2.5); scene.add(key);
+const fill = new THREE.DirectionalLight(0xbdd6ff, 0.34);
+fill.position.set(-2.5,1.5,1.5); scene.add(fill);
+const rim = new THREE.DirectionalLight(0x8fb6ff, 0.30);
+rim.position.set(0,2,-3); scene.add(rim);
+
+const ground = new THREE.Mesh(new THREE.CircleGeometry(1.15, 56),
+  new THREE.MeshStandardMaterial({color:0x1a2440, roughness:1}));
+ground.rotation.x = -Math.PI/2; scene.add(ground);
+
+/* =====================================================================
+   Figure
+===================================================================== */
+const skinMat   = new THREE.MeshStandardMaterial({color:0xd8bda2, roughness:0.72, metalness:0.02});
+const featureMat= new THREE.MeshStandardMaterial({color:0x8d6b52, roughness:0.75});
+const whiteMat  = new THREE.MeshStandardMaterial({color:0xf4f4f6, roughness:0.35});
+const irisMat   = new THREE.MeshStandardMaterial({color:0x4a6b52, roughness:0.35});
+const darkMat   = new THREE.MeshStandardMaterial({color:0x241a14, roughness:0.5});
+const muscleMat = new THREE.MeshStandardMaterial({color:0xcfae94, roughness:0.75});
+
+const body = new THREE.Group();
+scene.add(body);
+
+function add(mesh){ body.add(mesh); return mesh; }
+
+/** Cylinder spanning two points — used for limbs, muscles, brows, nose bridge. */
+function segment(a, b, rTop, rBot, mat){
+  const va = new THREE.Vector3(...a), vb = new THREE.Vector3(...b);
+  const dir = new THREE.Vector3().subVectors(vb, va);
+  const len = dir.length();
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBot===undefined?rTop:rBot, len, 18), mat||skinMat);
+  m.position.copy(va).add(vb).multiplyScalar(0.5);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.clone().normalize());
+  return add(m);
+}
+function blob(pos, r, scale, mat){
+  const m = new THREE.Mesh(new THREE.SphereGeometry(r, 26, 22), mat||skinMat);
+  m.position.set(...pos);
+  if(scale) m.scale.set(...scale);
+  return add(m);
+}
+
+/* ---- Torso (lathe profile, pelvis -> neck base) ---- */
+const torsoProfile = [
+  [0.00,0.130],[0.16,0.150],[0.36,0.122],[0.55,0.150],
+  [0.72,0.175],[0.86,0.192],[0.96,0.150],[1.00,0.070]
+].map(p => new THREE.Vector2(p[1], p[0]));
+const torso = new THREE.Mesh(new THREE.LatheGeometry(torsoProfile, 36), skinMat);
+torso.scale.set(1,0.62,1); torso.position.y = 0.86; add(torso);
+
+/* ---- Head ----------------------------------------------------------
+   The skull is one ellipsoid, and every facial feature is placed by
+   asking that ellipsoid where its surface is at a given x/y. Hardcoding
+   z values buries the features inside the head. ------------------- */
+const HEAD = {cy: 1.623, a: 0.121, b: 0.139, c: 0.127};
+
+/** A sphere is not a head: below the equator it curves under, so anything
+ *  painted on the lower face wraps beneath the chin. This pulls the front
+ *  of the skull forward below the brow, giving a near-vertical face plane.
+ *  Applied to the geometry AND to the surface math so both agree. */
+function bulgeK(xn, yn, zn){
+  if(zn <= 0) return 1;
+  const r = Math.hypot(xn, zn);
+  if(r < 1e-5) return 1;
+  const t = (0.18 - yn) / 1.10;
+  if(t <= 0) return 1;
+  const frontness = (zn / r) ** 2;
+  // fade the pull back out at the very bottom, or the chin comes to a point
+  const taper = Math.min(1, (yn + 1.0) / 0.40);
+  const k = 1 + (0.94 / r - 1) * Math.min(1, t) * frontness * 0.85 * taper;
+  return Math.min(k, 2.3);
+}
+
+/** Surface z of the skull at (x, y). 0 if the point is off the ellipsoid. */
+function faceZ(x, y){
+  const xn = x / HEAD.a, yn = (y - HEAD.cy) / HEAD.b;
+  const k = 1 - xn*xn - yn*yn;
+  if(k <= 0) return 0;
+  const zn = Math.sqrt(k);
+  return HEAD.c * zn * bulgeK(xn, yn, zn);
+}
+/** A point sitting `out` in front of the face surface at (x, y). */
+function onFace(x, y, out){ return [x, y, faceZ(x, y) + (out || 0)]; }
+
+/** Push a point out onto the skin. Palpation landmarks are written in
+ *  anatomical terms, so many of them would otherwise sit inside the head
+ *  or neck and never be visible. */
+function pushToSkin(p){
+  const [x, y, z] = p;
+  const v = (y - HEAD.cy) / HEAD.b;
+  if(y > 1.487 && Math.abs(v) < 1){
+    const rx = HEAD.a * Math.sqrt(1 - v*v), rz = HEAD.c * Math.sqrt(1 - v*v);
+    const t = Math.hypot(x/rx, z/rz);
+    let sx = x, sz = z;
+    if(t < 1 && t > 1e-6){ const k = 1.05 / t; sx = x*k; sz = z*k; }
+    // mirror the skull deformation exactly — including the sideways
+    // widening — or markers end up buried inside the head and unclickable
+    const kb = bulgeK(sx / HEAD.a, v, sz / HEAD.c);
+    if(kb !== 1){ sz *= kb; sx *= 1 + (kb - 1) * 0.16; }
+    return [sx, y, sz];
+  }
+  if(y >= 1.385 && y <= 1.487){
+    const r = 0.062, t = Math.hypot(x, z);
+    if(t < r && t > 1e-6){ const k = (r * 1.06) / t; return [x*k, y, z*k]; }
+  }
+  return p;
+}
+
+/* The face is PAINTED onto the skull rather than assembled from spheres:
+   overlapping blobs read as a caricature, while a texture gives real eyes,
+   brows and lips. Only the nose and ears keep geometry, since they carry
+   the silhouette. Feature coordinates are written in head space and
+   projected into the sphere's equirectangular UVs. */
+const FACE_W = 2048, FACE_H = 1024;
+
+function headPx(x, y){
+  const v = Math.max(-1, Math.min(1, (y - HEAD.cy) / HEAD.b));
+  const theta = Math.acos(v);
+  const sinT = Math.sin(theta);
+  const xn = Math.max(-sinT, Math.min(sinT, x / HEAD.a));
+  const zn = Math.sqrt(Math.max(0, sinT*sinT - xn*xn));
+  const phi = Math.atan2(zn, -xn);
+  return { px: (phi / (2*Math.PI)) * FACE_W, py: (theta / Math.PI) * FACE_H };
+}
+/** Bounding box in canvas pixels for a head-space rectangle — this is what
+ *  keeps features from smearing as the projection distorts toward the chin. */
+function boxPx(cx, cy, halfW, halfH){
+  const c = headPx(cx, cy);
+  const l = headPx(cx - halfW, cy), r = headPx(cx + halfW, cy);
+  const t = headPx(cx, cy + halfH), b = headPx(cx, cy - halfH);
+  return { x: c.px, y: c.py, w: Math.abs(r.px - l.px), h: Math.abs(b.py - t.py) };
+}
+
+function makeFaceTexture(){
+  const cv = document.createElement('canvas');
+  cv.width = FACE_W; cv.height = FACE_H;
+  const g = cv.getContext('2d');
+
+  g.fillStyle = '#d8bda2';
+  g.fillRect(0, 0, FACE_W, FACE_H);
+
+  const ell = (b, fill) => {
+    g.beginPath(); g.ellipse(b.x, b.y, b.w/2, b.h/2, 0, 0, Math.PI*2);
+    g.fillStyle = fill; g.fill();
+  };
+
+  // soft warmth over the cheeks and a little shadow under the jaw
+  [-1, 1].forEach(s => {
+    const b = boxPx(s*0.060, 1.602, 0.038, 0.028);
+    const grd = g.createRadialGradient(b.x, b.y, 2, b.x, b.y, Math.max(b.w, b.h)/2);
+    grd.addColorStop(0, 'rgba(198,134,112,0.30)');
+    grd.addColorStop(1, 'rgba(198,134,112,0)');
+    g.fillStyle = grd;
+    g.beginPath(); g.ellipse(b.x, b.y, b.w/2, b.h/2, 0, 0, Math.PI*2); g.fill();
+  });
+  ell(boxPx(0, 1.516, 0.080, 0.028), 'rgba(160,116,92,0.16)');       // under-jaw shading
+  ell(boxPx(0, 1.608, 0.016, 0.044), 'rgba(196,158,132,0.20)');      // nose shadow column
+
+  // eyes
+  [-1, 1].forEach(s => {
+    const x = s*EYE_X;
+    const socket = boxPx(x, EYE_Y, 0.030, 0.019);
+    ell(socket, 'rgba(163,124,101,0.34)');
+
+    const eye = boxPx(x, EYE_Y, 0.0235, 0.0108);
+    g.save();
+    g.beginPath(); g.ellipse(eye.x, eye.y, eye.w/2, eye.h/2, 0, 0, Math.PI*2);
+    g.clip();
+    g.fillStyle = '#f1eeea'; g.fillRect(eye.x-eye.w, eye.y-eye.h, eye.w*2, eye.h*2);
+
+    const iris = boxPx(x, EYE_Y, 0.0088, 0.0088);
+    g.beginPath(); g.ellipse(iris.x, iris.y, iris.w/2, iris.h/2, 0, 0, Math.PI*2);
+    g.fillStyle = '#5c7f63'; g.fill();
+    g.beginPath(); g.ellipse(iris.x, iris.y, iris.w/2, iris.h/2, 0, 0, Math.PI*2);
+    g.strokeStyle = 'rgba(38,52,40,0.85)'; g.lineWidth = iris.w*0.16; g.stroke();
+
+    const pup = boxPx(x, EYE_Y, 0.0038, 0.0038);
+    g.beginPath(); g.ellipse(pup.x, pup.y, pup.w/2, pup.h/2, 0, 0, Math.PI*2);
+    g.fillStyle = '#140f0b'; g.fill();
+
+    g.beginPath();
+    g.ellipse(iris.x - iris.w*0.22, iris.y - iris.h*0.24, iris.w*0.13, iris.h*0.13, 0, 0, Math.PI*2);
+    g.fillStyle = 'rgba(255,255,255,0.9)'; g.fill();              // catchlight
+    g.restore();
+
+    // lash line and lid crease
+    g.beginPath(); g.ellipse(eye.x, eye.y, eye.w/2, eye.h/2, 0, Math.PI, Math.PI*2);
+    g.strokeStyle = '#33241b'; g.lineWidth = Math.max(3, eye.h*0.20); g.stroke();
+    g.beginPath(); g.ellipse(eye.x, eye.y, eye.w/2, eye.h/2, 0, 0, Math.PI);
+    g.strokeStyle = 'rgba(120,88,68,0.65)'; g.lineWidth = Math.max(2, eye.h*0.10); g.stroke();
+    const crease = boxPx(x, EYE_Y + 0.0125, 0.0225, 0.0018);
+    g.beginPath(); g.ellipse(crease.x, crease.y, crease.w/2, crease.h/2 + 2, 0, Math.PI, Math.PI*2);
+    g.strokeStyle = 'rgba(150,112,88,0.5)'; g.lineWidth = 3; g.stroke();
+
+    // brow
+    const bi = headPx(s*0.020, BROW_Y - 0.0015);
+    const bm = headPx(s*0.048, BROW_Y + 0.0055);
+    const bo = headPx(s*0.079, BROW_Y - 0.0005);
+    g.beginPath();
+    g.moveTo(bi.px, bi.py);
+    g.quadraticCurveTo(bm.px, bm.py - 6, bo.px, bo.py);
+    g.strokeStyle = '#6d4a33';
+    g.lineWidth = Math.abs(bo.px - bi.px) * 0.17;
+    g.lineCap = 'round';
+    g.stroke();
+  });
+
+  // nostril shadows (the 3D nose supplies the form)
+  [-1, 1].forEach(s => ell(boxPx(s*0.0092, NOSE_BASE - 0.0055, 0.0052, 0.0030), 'rgba(84,56,40,0.75)'));
+
+  // lips
+  const lipTop = boxPx(0, MOUTH_Y + 0.0048, 0.0268, 0.0062);
+  const lipBot = boxPx(0, MOUTH_Y - 0.0054, 0.0248, 0.0074);
+  ell(lipTop, 'rgba(178,124,110,0.92)');
+  ell(lipBot, 'rgba(192,137,121,0.92)');
+  const seam = boxPx(0, MOUTH_Y, 0.0268, 0.0014);
+  g.beginPath();
+  g.moveTo(seam.x - seam.w/2, seam.y);
+  g.quadraticCurveTo(seam.x, seam.y + seam.h*0.6, seam.x + seam.w/2, seam.y);
+  g.strokeStyle = 'rgba(112,70,56,0.85)'; g.lineWidth = Math.max(2, seam.h + 2); g.lineCap = 'round'; g.stroke();
+  ell(boxPx(0, MOUTH_Y + 0.0128, 0.0090, 0.0035), 'rgba(170,126,102,0.35)');   // philtrum
+
+  const tex = new THREE.CanvasTexture(cv);
+  tex.anisotropy = 4;
+  return tex;
+}
+
+const EYE_Y = 1.6345, BROW_Y = 1.6585, NOSE_BASE = 1.5845, MOUTH_Y = 1.5540, EYE_X = 0.0480;
+
+const headMat = new THREE.MeshStandardMaterial({ map: makeFaceTexture(), roughness: 0.74, metalness: 0.02 });
+const skullGeo = new THREE.SphereGeometry(1, 96, 72);
+{
+  const pa = skullGeo.attributes.position;
+  for(let i = 0; i < pa.count; i++){
+    const x = pa.getX(i), y = pa.getY(i), z = pa.getZ(i);
+    const k = bulgeK(x, y, z);
+    if(k !== 1){ pa.setZ(i, z * k); pa.setX(i, x * (1 + (k - 1) * 0.16)); }
+  }
+  pa.needsUpdate = true;
+  skullGeo.computeVertexNormals();
+}
+const skull = new THREE.Mesh(skullGeo, headMat);
+skull.scale.set(HEAD.a, HEAD.b, HEAD.c);
+skull.position.set(0, HEAD.cy, 0);
+add(skull);
+
+/* Nose — the one feature that has to exist in 3D */
+segment(onFace(0,1.6300,-0.008), onFace(0,NOSE_BASE+0.008,-0.001), 0.0062, 0.0105);
+blob(onFace(0,NOSE_BASE+0.0035,0.0022), 0.0118, [1.10,0.82,0.86]);
+blob(onFace(-0.0142,NOSE_BASE-0.0010,-0.0030), 0.0090, [0.88,0.76,0.80]);
+blob(onFace(0.0142,NOSE_BASE-0.0010,-0.0030), 0.0090, [0.88,0.76,0.80]);
+
+/* Ears — top at the brow, lobe at the nose base */
+[-1,1].forEach(s=>{
+  const y = (BROW_Y + NOSE_BASE) / 2;
+  const rx = HEAD.a * Math.sqrt(Math.max(0, 1 - ((y-HEAD.cy)/HEAD.b)**2));
+  const ear = new THREE.Mesh(new THREE.TorusGeometry(0.0255,0.0068,10,22), skinMat);
+  ear.position.set(s*(rx+0.003), y+0.004, -0.013);
+  ear.rotation.y = Math.PI/2; ear.rotation.z = 0.26;
+  add(ear);
+  blob([s*(rx+0.003), y-0.025, -0.013], 0.0096, [0.62,1,1]);
+  blob([s*(rx-0.003), y+0.004, -0.007], 0.0140, [0.40,0.95,0.85]);
+});
+
+/* ---- Neck + sternocleidomastoid (landmark for the cervical node chains) ---- */
+const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.054,0.064,0.135,22), skinMat);
+neck.position.set(0,1.462,0); add(neck);
+[-1,1].forEach(s=>{
+  segment([s*0.050,1.522,0.006],[s*0.020,1.400,0.058], 0.0145, 0.0125, muscleMat);  // SCM
+  segment([s*0.030,1.470,-0.045],[s*0.115,1.408,-0.020], 0.014, 0.018, muscleMat);  // upper trap
+});
+/* clavicles — the landmark for supraclavicular nodes */
+[-1,1].forEach(s=>{
+  segment([s*0.018,1.398,0.072],[s*0.150,1.392,0.030], 0.011, 0.013);
+});
+
+/* ---- Limbs ---- */
+[-1,1].forEach(s=>{
+  segment([s*0.185,1.395,0.005],[s*0.222,1.095,0.015], 0.050, 0.040);   // upper arm
+  segment([s*0.222,1.095,0.015],[s*0.243,0.800,0.030], 0.039, 0.030);   // forearm
+  blob([s*0.247,0.742,0.038], 0.047, [0.78,1.28,0.55]);                 // hand
+  segment([s*0.098,0.880,0.010],[s*0.105,0.490,0.020], 0.098, 0.066);   // thigh
+  segment([s*0.105,0.490,0.020],[s*0.105,0.085,0.010], 0.062, 0.049);   // lower leg
+  const foot = new THREE.Mesh(new THREE.BoxGeometry(0.093,0.058,0.205), skinMat);
+  foot.position.set(s*0.105,0.052,0.062); add(foot);
+});
+
+/* =====================================================================
+   Markers
+===================================================================== */
+const MAIN_R = 0.021, SUB_R = 0.0132;
+const markers = [];   // {mesh, region, subIndex}
+const bodyMeshes = body.children.slice();   // everything built so far = the figure itself
+
+function makeMarker(region, p, subIndex){
+  const color = CATS[region.cat].color;
+  const mat = new THREE.MeshStandardMaterial({
+    color, emissive:color, emissiveIntensity:0.6, roughness:0.35,
+  });
+  const r = subIndex === undefined ? MAIN_R : SUB_R;
+  const m = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 14), mat);
+  const q = pushToSkin(p);
+  m.position.set(q[0], q[1], q[2]);
+  m.userData = {regionId: region.id, subIndex};
+  body.add(m);
+  markers.push({mesh:m, region, subIndex});
+}
+
+REGIONS.forEach(region=>{
+  region.pos.forEach(p => makeMarker(region, p));
+  (region.sub || []).forEach((s, i) => s.pos.forEach(p => makeMarker(region, p, i)));
+});
+
+const TOTAL = REGIONS.length;
+document.getElementById('progressTotal').textContent = TOTAL;
+
+/* =====================================================================
+   State
+===================================================================== */
+let selectedId = null, selectedSub = null, hoveredMesh = null;
+
+let activeCats = new Set(Object.keys(CATS).filter(k => !CATS[k].layer));
+let filterText = '';
+
+let studied = new Set();
+try{ const raw = localStorage.getItem('atlasStudied2'); if(raw) studied = new Set(JSON.parse(raw)); }catch(e){}
+function saveProgress(){ try{ localStorage.setItem('atlasStudied2', JSON.stringify([...studied])); }catch(e){} }
+
+function findRegion(id){ return REGIONS.find(r => r.id === id); }
+
+function updateProgressUI(){
+  document.getElementById('progressCount').textContent = studied.size;
+  document.getElementById('progressFill').style.width = (100*studied.size/TOTAL) + '%';
+  document.querySelectorAll('#regionList li').forEach(li=>{
+    const mark = li.querySelector('.done');
+    if(mark) mark.textContent = studied.has(li.dataset.id) ? '✓' : '';
+  });
+}
+
+function applyLayers(){
+  markers.forEach(({mesh, region}) => { mesh.visible = activeCats.has(region.cat); });
+}
+
+/* =====================================================================
+   Picking — works with a finger, not just a mouse.
+   OrbitControls consumes touch events, so a synthesized `click` never
+   arrives on mobile. We track pointerdown/up ourselves and treat a short,
+   low-movement press as a tap.
+===================================================================== */
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+
+function setPointer(e){
+  const rect = renderer.domElement.getBoundingClientRect();
+  ndc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  ndc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+}
+
+/** Exact hit first; then a forgiving screen-space search so fingertips work.
+ *  The proximity fallback respects occlusion: a marker behind the torso
+ *  (farther than where the ray meets the body) is never picked. */
+function pickMarker(e){
+  const visible = markers.filter(m => m.mesh.visible);
+  raycaster.setFromCamera(ndc, camera);
+
+  const direct = raycaster.intersectObjects(visible.map(m => m.mesh), false);
+  const bodyHit = raycaster.intersectObjects(bodyMeshes, false);
+  if(direct.length){
+    if(!bodyHit.length || direct[0].distance <= bodyHit[0].distance + 0.02) return direct[0].object;
+  }
+
+  const rect = renderer.domElement.getBoundingClientRect();
+  const px = e.clientX - rect.left, py = e.clientY - rect.top;
+  const limit = bodyHit.length ? bodyHit[0].distance + 0.05 : Infinity;
+  const tolerance = 30;
+  let best = null, bestD = Infinity;
+  const v = new THREE.Vector3();
+  for(const {mesh} of visible){
+    v.setFromMatrixPosition(mesh.matrixWorld);
+    const dist = v.distanceTo(camera.position);
+    if(dist > limit) continue;
+    v.project(camera);
+    const sx = (v.x + 1) / 2 * rect.width;
+    const sy = (-v.y + 1) / 2 * rect.height;
+    // bias toward the small detail markers: with the lymph and cranial
+    // layers both on, a neighbouring main marker otherwise wins the tap
+    const d = Math.hypot(sx - px, sy - py) * (mesh.userData.subIndex !== undefined ? 0.65 : 1);
+    if(d < tolerance && d < bestD){ bestD = d; best = mesh; }
+  }
+  return best;
+}
+
+let down = null;
+renderer.domElement.addEventListener('pointerdown', e=>{
+  down = {x:e.clientX, y:e.clientY, t:performance.now()};
+});
+renderer.domElement.addEventListener('pointerup', e=>{
+  if(!down) return;
+  const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
+  const held = performance.now() - down.t;
+  down = null;
+  if(moved > 12 || held > 700) return;   // that was a drag or a long press, not a tap
+  setPointer(e);
+  const hit = pickMarker(e);
+  if(hit) onMarkerTap(hit.userData.regionId, hit.userData.subIndex);
+});
+renderer.domElement.addEventListener('pointercancel', ()=>{ down = null; });
+
+renderer.domElement.addEventListener('pointermove', e=>{
+  if(e.pointerType !== 'mouse') return;
+  setPointer(e);
+  const hit = pickMarker(e);
+  hoveredMesh = hit;
+  renderer.domElement.style.cursor = hit ? 'pointer' : 'grab';
+});
+
+function onMarkerTap(id, subIndex){
+  if(quizActive && quizMode === 'locate'){ answerLocate(id); return; }
+  selectRegion(id, {sub: subIndex, focus: subIndex !== undefined});
+}
+
+/* =====================================================================
+   Selection + camera
+===================================================================== */
+let camAnim = null;
+function animateCamera(targetVec, dist, dirVec){
+  const startT = controls.target.clone(), startP = camera.position.clone();
+  const endT = targetVec.clone();
+  const dir = (dirVec || new THREE.Vector3().subVectors(camera.position, controls.target)).clone().normalize();
+  const endP = new THREE.Vector3().addVectors(endT, dir.multiplyScalar(dist));
+  const t0 = performance.now(), dur = 620;
+  camAnim = ()=>{
+    const t = Math.min(1, (performance.now() - t0) / dur);
+    const k = t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t;
+    controls.target.lerpVectors(startT, endT, k);
+    camera.position.lerpVectors(startP, endP, k);
+    if(t >= 1) camAnim = null;
+  };
+}
+
+function focusOn(posArr, closeness){
+  const p = new THREE.Vector3(...posArr);
+  animateCamera(p, closeness || Math.max(camera.position.distanceTo(controls.target)*0.85, 0.5));
+}
+
+function selectRegion(id, opts){
+  opts = opts || {};
+  const region = findRegion(id);
+  if(!region) return;
+
+  // A detail layer (lymph, cranial nerves) turns itself on when you ask for it.
+  if(CATS[region.cat].layer && !activeCats.has(region.cat)){
+    activeCats.add(region.cat);
+    syncLegend(); applyLayers(); renderList();
+  }
+
+  selectedId = id;
+  selectedSub = (opts.sub !== undefined) ? opts.sub : null;
+  studied.add(id); saveProgress(); updateProgressUI();
+
+  if(window.innerWidth < 820) document.getElementById('sidebar').classList.remove('open');
+
+  showDetail(region);
+  highlightList(id);
+
+  if(opts.focus !== false){
+    const target = (selectedSub !== null && region.sub) ? region.sub[selectedSub].pos[0] : region.pos[0];
+    const tight = (region.cat === 'lymph' || region.cat === 'cn' || selectedSub !== null);
+    focusOn(target, tight ? 0.42 : undefined);
+  }
+}
+
+/* =====================================================================
+   Detail panel
+===================================================================== */
+const detailEl = document.getElementById('detail');
+
+function showDetail(region){
+  const cat = CATS[region.cat];
+  const hex = '#' + cat.color.toString(16).padStart(6,'0');
+  const tag = document.getElementById('detailCat');
+  tag.textContent = cat.label;
+  tag.style.color = hex; tag.style.borderColor = hex;
+
+  document.getElementById('detailTitle').textContent = region.label;
+  document.getElementById('dTechnique').textContent = region.technique;
+  document.getElementById('dNormal').textContent = region.normal;
+  document.getElementById('dWatch').textContent = region.watch;
+
+  const pearlWrap = document.getElementById('fPearl');
+  if(region.pearl){ pearlWrap.style.display = ''; document.getElementById('dPearl').textContent = region.pearl; }
+  else pearlWrap.style.display = 'none';
+
+  const subWrap = document.getElementById('fSub');
+  const subList = document.getElementById('subList');
+  subList.innerHTML = '';
+  if(region.sub && region.sub.length){
+    subWrap.style.display = '';
+    region.sub.forEach((s, i)=>{
+      const li = document.createElement('li');
+      if(i === selectedSub) li.classList.add('active');
+      const b = document.createElement('b'); b.textContent = s.name;
+      const sp = document.createElement('span'); sp.textContent = s.note;
+      li.appendChild(b); li.appendChild(sp);
+      li.onclick = ()=> selectRegion(region.id, {sub: i});
+      subList.appendChild(li);
+    });
+  } else subWrap.style.display = 'none';
+
+  document.getElementById('quizThis').style.display = (region.quiz && region.quiz.length) ? '' : 'none';
+  detailEl.classList.add('show');
+  detailEl.scrollTop = 0;
+}
+
+document.getElementById('closeDetail').onclick = ()=>{
+  detailEl.classList.remove('show');
+  selectedId = null; selectedSub = null;
+  highlightList(null);
+};
+
+/* =====================================================================
+   Sidebar
+===================================================================== */
+const listEl = document.getElementById('regionList');
+const legendEl = document.getElementById('legend');
+
+function syncLegend(){
+  legendEl.querySelectorAll('.chip').forEach(chip=>{
+    chip.classList.toggle('on', activeCats.has(chip.dataset.cat));
+  });
+}
+function buildLegend(){
+  Object.entries(CATS).forEach(([key, c])=>{
+    const chip = document.createElement('span');
+    chip.className = 'chip' + (c.layer ? ' layer' : '');
+    chip.dataset.cat = key;
+    chip.textContent = c.label;
+    const hex = '#' + c.color.toString(16).padStart(6,'0');
+    chip.style.borderColor = hex; chip.style.color = hex;
+    chip.onclick = ()=>{
+      if(activeCats.has(key)) activeCats.delete(key); else activeCats.add(key);
+      syncLegend(); applyLayers(); renderList();
+    };
+    legendEl.appendChild(chip);
+  });
+  syncLegend();
+}
+
+function renderList(){
+  listEl.innerHTML = '';
+  REGIONS.forEach((r, i)=>{
+    if(!activeCats.has(r.cat)) return;
+    if(filterText && !(r.label + ' ' + (r.sub||[]).map(s=>s.name).join(' ')).toLowerCase().includes(filterText)) return;
+    const li = document.createElement('li');
+    li.dataset.id = r.id;
+    if(r.id === selectedId) li.classList.add('selected');
+    const idx = document.createElement('span'); idx.className = 'idx'; idx.textContent = i+1;
+    const dot = document.createElement('span'); dot.className = 'dot';
+    dot.style.background = '#' + CATS[r.cat].color.toString(16).padStart(6,'0');
+    const label = document.createElement('span'); label.textContent = r.label; label.style.flex = '1';
+    const done = document.createElement('span'); done.className = 'done';
+    done.textContent = studied.has(r.id) ? '✓' : '';
+    li.append(idx, dot, label, done);
+    li.onclick = ()=> selectRegion(r.id);
+    listEl.appendChild(li);
+  });
+  updateProgressUI();
+}
+function highlightList(id){
+  document.querySelectorAll('#regionList li').forEach(li=>{
+    li.classList.toggle('selected', li.dataset.id === id);
+  });
+}
+document.getElementById('search').addEventListener('input', e=>{
+  filterText = e.target.value.toLowerCase(); renderList();
+});
+
+/* =====================================================================
+   View buttons
+===================================================================== */
+document.getElementById('frontBtn').onclick = ()=>
+  animateCamera(new THREE.Vector3(0,0.95,0), fitDistance(), new THREE.Vector3(0,0,1));
+document.getElementById('backBtn').onclick = ()=>
+  animateCamera(new THREE.Vector3(0,0.95,0), fitDistance(), new THREE.Vector3(0,0,-1));
+document.getElementById('headBtn').onclick = ()=>
+  animateCamera(new THREE.Vector3(0,1.615,0), 0.63, new THREE.Vector3(0,0.10,1));
+document.getElementById('sidebarToggle').onclick = ()=>
+  document.getElementById('sidebar').classList.toggle('open');
+
+function fitDistance(){
+  return 1.05 / Math.tan(camera.fov * Math.PI / 360) * 1.12;
+}
+
+/* =====================================================================
+   Quiz
+===================================================================== */
+const quizCard = document.getElementById('quizCard');
+const quizMetaEl = document.getElementById('quizMeta');
+const quizQEl = document.getElementById('quizQ');
+const quizOptsEl = document.getElementById('quizOpts');
+const quizWhyEl = document.getElementById('quizWhy');
+const quizNextEl = document.getElementById('quizNext');
+const scoreEl = document.getElementById('score');
+
+let quizActive = false;
+let quizMode = 'mc';           // 'mc' = multiple choice, 'locate' = tap the region
+let quizPool = [];
+let current = null;
+let score = {right:0, asked:0};
+
+function buildPool(regionIds){
+  const pool = [];
+  REGIONS.forEach(r=>{
+    if(regionIds && !regionIds.includes(r.id)) return;
+    if(!regionIds && !activeCats.has(r.cat)) return;
+    (r.quiz || []).forEach(q => pool.push({region:r, q}));
+  });
+  return pool.sort(()=> Math.random() - 0.5);
+}
+
+function startQuiz(regionIds){
+  quizActive = true;
+  quizMode = 'mc';
+  quizPool = buildPool(regionIds);
+  if(!quizPool.length){ quizPool = buildPool(null); }
+  score = {right:0, asked:0};
+  document.getElementById('quizBtn').classList.add('active');
+  detailEl.classList.remove('show');
+  quizCard.classList.add('show');
+  nextQuestion();
+}
+
+function endQuiz(){
+  quizActive = false;
+  quizCard.classList.remove('show');
+  document.getElementById('quizBtn').classList.remove('active');
+  scoreEl.textContent = score.asked ? `Last quiz: ${score.right}/${score.asked}` : '';
+}
+
+function nextQuestion(){
+  if(!quizPool.length) quizPool = buildPool(null);
+  current = quizPool.shift();
+  if(!current){ endQuiz(); return; }
+
+  quizMetaEl.textContent = current.region.label;
+  quizQEl.textContent = current.q.q;
+  quizWhyEl.classList.remove('show');
+  quizNextEl.classList.remove('show');
+  quizOptsEl.innerHTML = '';
+
+  current.q.options.forEach((text, i)=>{
+    const b = document.createElement('button');
+    b.className = 'opt';
+    b.textContent = text;
+    b.onclick = ()=> answerMC(i, b);
+    quizOptsEl.appendChild(b);
+  });
+}
+
+function answerMC(picked, btn){
+  const buttons = [...quizOptsEl.querySelectorAll('.opt')];
+  if(buttons.some(b => b.disabled)) return;
+  buttons.forEach(b => b.disabled = true);
+
+  score.asked++;
+  const correct = current.q.answer;
+  buttons[correct].classList.add('correct');
+  if(picked === correct){ score.right++; }
+  else btn.classList.add('wrong');
+
+  quizWhyEl.textContent = (picked === correct ? '✅ ' : '❌ ') + current.q.why;
+  quizWhyEl.classList.add('show');
+  quizNextEl.classList.add('show');
+  scoreEl.textContent = `Score: ${score.right}/${score.asked}`;
+
+  studied.add(current.region.id); saveProgress(); updateProgressUI();
+
+  // show where on the body this question lives
+  const r = current.region;
+  if(CATS[r.cat].layer && !activeCats.has(r.cat)){
+    activeCats.add(r.cat); syncLegend(); applyLayers(); renderList();
+  }
+  selectedId = r.id; selectedSub = null;
+  focusOn(r.pos[0], (r.cat === 'lymph' || r.cat === 'cn') ? 0.5 : 1.3);
+}
+
+function answerLocate(id){ /* reserved for a future locate mode */ }
+
+quizNextEl.onclick = nextQuestion;
+document.getElementById('quizClose').onclick = endQuiz;
+document.getElementById('quizBtn').onclick = ()=> quizActive ? endQuiz() : startQuiz(null);
+document.getElementById('quizThis').onclick = ()=>{ if(selectedId) startQuiz([selectedId]); };
+
+/* =====================================================================
+   Loop
+===================================================================== */
+let didFit = false;
+function resize(){
+  const w = canvasWrap.clientWidth, h = canvasWrap.clientHeight;
+  if(!w || !h) return;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+  if(!didFit){
+    didFit = true;
+    controls.target.set(0,0.95,0);
+    camera.position.set(0, 0.95, fitDistance());
+    controls.update();
+  }
+}
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', ()=> setTimeout(resize, 250));
+// The canvas also changes width when the detail panel opens or closes.
+// Without this the render stays stretched and every tap lands off-target.
+if(window.ResizeObserver) new ResizeObserver(resize).observe(canvasWrap);
+
+const clock = new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+  // Markers hold a constant SCREEN size: without this they swallow the face
+  // as soon as you zoom into the head.
+  const phone = window.innerWidth < 820;
+  const mainFrac = phone ? 0.020 : 0.013;
+  const tanHalfFov = Math.tan(camera.fov * Math.PI / 360);
+  const camPos = camera.position;
+  markers.forEach(({mesh, region, subIndex})=>{
+    if(!mesh.visible) return;
+    const isSel = region.id === selectedId &&
+      (selectedSub === null ? subIndex === undefined : subIndex === selectedSub);
+    const isSub = subIndex !== undefined;
+    const dist = mesh.position.distanceTo(camPos);
+    const wantRadius = dist * tanHalfFov * mainFrac * (isSub ? 0.62 : 1);
+    const pulse = 1 + Math.sin(t*3 + mesh.position.x*9 + mesh.position.y*4) * 0.08;
+    let s = (wantRadius / (isSub ? SUB_R : MAIN_R)) * pulse;
+    if(hoveredMesh === mesh) s *= 1.3;
+    if(isSel) s *= 1.7;
+    mesh.scale.setScalar(s);
+    mesh.material.emissiveIntensity = isSel ? 1.15 : (hoveredMesh === mesh ? 0.9 : 0.6);
+  });
+  if(camAnim) camAnim();
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+window.__hideMarkers = () => markers.forEach(m => m.mesh.visible = false);
+
+buildLegend();
+applyLayers();
+renderList();
+resize();
+animate();
+</script>
+</body>
+</html>
