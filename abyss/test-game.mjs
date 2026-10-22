@@ -23,8 +23,9 @@ try {
   await page.mouse.move(rect.x + rect.width/2, rect.y + rect.height/2);
   await page.mouse.down();
   await page.mouse.move(rect.x + rect.width*.8, rect.y + rect.height*.55, {steps:5});
+  const knobStyle = await page.locator('#knob').getAttribute('style') || '';
   await page.mouse.up();
-  if ((await page.locator('#knob').getAttribute('style') || '').includes('translate(0,0)')) throw new Error('Joystick did not move');
+  if (!knobStyle.includes('translate(') || knobStyle.includes('translate(0,0)')) throw new Error('Joystick did not move');
   if (errors.length) throw new Error('Browser JavaScript errors: ' + errors.join('; '));
   console.log('PASS: mobile viewport loaded; deploy tap dismissed overlay; sonar responded; joystick moved; no page errors.');
 } finally {
