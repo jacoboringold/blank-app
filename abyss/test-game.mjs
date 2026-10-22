@@ -16,7 +16,8 @@ try {
   await page.locator('#deploy').tap();
   await page.waitForTimeout(250);
   if (!(await page.locator('#overlay').evaluate(el => el.classList.contains('hidden')))) throw new Error('Deploy button did not dismiss launch screen');
-  if (!(await page.locator('#toast').textContent()).includes('SWARM LINK ESTABLISHED')) throw new Error('Launch did not establish the game loop: ' + await page.locator('#toast').textContent());
+  const state = await page.evaluate(() => window.__ABYSS_TEST__.state());
+  if (!state.active || state.creatures < 100) throw new Error('Game did not enter active play: ' + JSON.stringify(state));
   await page.locator('button[onclick*="sonar"]').tap();
   if (!(await page.locator('#toast').evaluate(el => el.classList.contains('show')))) throw new Error('Sonar button did not trigger feedback');
   const joy = page.locator('#joy');
